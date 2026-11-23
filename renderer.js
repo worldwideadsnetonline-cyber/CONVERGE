@@ -38,3 +38,46 @@ document.getElementById('testSearch').onclick=async()=>{
   catch(e){status.textContent='Falha na pesquisa: '+e.message;}
 };
 renderHistory();
+const memoryPanel=document.getElementById('memoryPanel');
+const workspaceSelect=document.getElementById('workspaceSelect');
+const memoryList=document.getElementById('memoryList');
+let editingMemoryId=null;
+document.getElementById('memoryBtn').onclick=()=>{memoryPanel.classList.remove('hidden');refreshMemory();};
+document.getElementById('closeMemory').onclick=()=>memoryPanel.classList.add('hidden');
+async function refreshMemory(){
+  const status=document.getElementById('memoryStatus');
+  try{
+    const spaces=await window.converge.listWorkspaces();
+    const selected=workspaceSelect.value;
+    workspaceSelect.innerHTML='';
+    spaces.forEach(w=>{const o=document.createElement('option');o.value=w.id;o.textContent=w.name;workspaceSelect.appendChild(o);});
+    if(spaces.some(w=>w.id===selected))workspaceSelect.value=selected;
+    const memories=await window.converge.listMemories(workspaceSelect.value);
+    memoryList.innerHTML='';
+    memories.forEach(m=>{
+      const card=document.createElement('article');card.className='memory-item';
+      const title=document.createElement('strong');title.textContent=m.title;
+      const body=document.createElement('p');body.textContent=m.content;
+      const actions=document.createElement('div');actions.className='memory-actions';
+      const edit=document.createElement('button');edit.className='secondary';edit.textContent='Editar';edit.onclick=()=>{editingMemoryId=m.id;document.getElementById('memoryTitle').value=m.title;document.getElementById('memoryContent').value=m.content;};
+      const remove=document.createElement('button');remove.className='secondary';remove.textContent='Apagar';remove.onclick=async()=>{if(confirm('Apagar esta memória?')){await window.converge.deleteMemory(m.id);refreshMemory();}};
+      actions.append(edit,remove);card.append(title,body,actions);memoryList.appendChild(card);
+    });
+    status.textContent=memories.length+' memória(s) neste espaço.';
+  }catch(e){status.textContent='Erro: '+e.message;}
+}
+workspaceSelect.addEventListener('change',refreshMemory);
+document.getElementById('createWorkspace').onclick=async()=>{
+  const field=document.getElementById('workspaceName');
+  try{await window.converge.createWorkspace({name:field.value});field.value='';await refreshMemory();document.getElementById('memoryStatus').textContent='Projeto criado.';}
+  catch(e){document.getElementById('memoryStatus').textContent='Erro: '+e.message;}
+};
+document.getElementById('saveMemory').onclick=async()=>{
+  const title=document.getElementById('memoryTitle'),content=document.getElementById('memoryContent');
+  try{await window.converge.saveMemory({id:editingMemoryId||undefined,title:title.value,content:content.value,workspaceId:workspaceSelect.value});editingMemoryId=null;title.value='';content.value='';await refreshMemory();document.getElementById('memoryStatus').textContent='Memória guardada neste computador.';}
+  catch(e){document.getElementById('memoryStatus').textContent='Erro: '+e.message;}
+};
+document.getElementById('exportData').onclick=async()=>{
+  try{const data=await window.converge.exportData();const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='converge-dados.json';a.click();URL.revokeObjectURL(url);document.getElementById('memoryStatus').textContent='Exportação iniciada.';}
+  catch(e){document.getElementById('memoryStatus').textContent='Erro: '+e.message;}
+};
