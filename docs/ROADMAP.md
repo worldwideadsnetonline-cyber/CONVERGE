@@ -41,9 +41,9 @@ O roteiro é orientado por capacidades verificáveis. As fases podem sobrepor-se
 
 ## Fase 4 — Ferramentas e execução
 - [x] Catálogo allowlist inicial: calculadora local e pesquisa web de leitura.
-- [ ] Planos com passos, estado, progresso e cancelamento.
+- [x] Base de planos com passos, estado, progresso manual e cancelamento (motor local + UI; ainda sem execução autónoma de tarefas).
 - [x] Aprovação explícita antes de executar ferramentas propostas pela IA (expiração em cinco minutos).
-- [ ] Histórico local de execuções e resultados.
+- [x] Histórico local de eventos e estados das tarefas (resultados de execução de ferramentas ainda não integrados).
 - [ ] Análise de ficheiros e criação de entregáveis.
 
 **Aceitação:** nenhuma ferramenta fora da allowlist executa; ações de risco ficam bloqueadas até aprovação.
