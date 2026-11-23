@@ -1,11 +1,13 @@
 {
   "name": "converge",
-  "version": "1.0.0",
-  "description": "CONVERGE AI desktop chat",
+  "version": "1.1.0",
+  "description": "CONVERGE — Human x AI continuous collaboration workspace",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win nsis --publish never"
+    "dist:win": "electron-builder --win nsis --publish never",
+    "test": "node --test",
+    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check src/store.js"
   },
   "devDependencies": {
     "electron": "^34.0.0",
@@ -20,6 +22,7 @@
       "renderer.js",
       "index.html",
       "styles.css",
+      "src/**/*",
       "package.json"
     ],
     "win": {
