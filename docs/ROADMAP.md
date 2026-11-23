@@ -25,7 +25,7 @@ O roteiro é orientado por capacidades verificáveis. As fases podem sobrepor-se
 - [ ] Projetos com nome, objetivo, estado e conteúdo relacionado.
 - [ ] Memória explícita: guardar, listar, pesquisar, editar e apagar.
 - [ ] Proveniência e âmbito de cada memória.
-- [ ] Recuperação contextual limitada por projeto e relevância.
+- [x] Recuperação contextual limitada por projeto e relevância (até cinco memórias, ranking lexical e isolamento por espaço).
 - [ ] Controlos para desativar memória e exportar/apagar dados.
 
 **Aceitação:** o utilizador consegue inspecionar exatamente o que foi guardado e remover um item sem afetar outros.
