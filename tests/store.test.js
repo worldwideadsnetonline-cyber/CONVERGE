@@ -50,3 +50,17 @@ test('cria espaços de trabalho com validação', t => {
   assert.equal(project.name, 'Projeto Alpha');
   assert.throws(() => store.createWorkspace({ name: ' ' }));
 });
+
+test('recupera apenas memórias relevantes do projeto selecionado', t => {
+  const store = createStore(fixture(t));
+  const personal = store.listWorkspaces()[0];
+  const alpha = store.createWorkspace({ name: 'Projeto Alpha' });
+  const relevant = store.saveMemory({ title: 'Arquitetura do CONVERGE', content: 'O motor de memória usa pesquisa contextual e recuperação por relevância.', workspaceId: alpha.id });
+  store.saveMemory({ title: 'Receita de bolo', content: 'Farinha, ovos e açúcar.', workspaceId: alpha.id });
+  store.saveMemory({ title: 'CONVERGE memória', content: 'Contexto de outro espaço não deve aparecer.', workspaceId: personal.id });
+  const found = store.searchMemories(alpha.id, 'Como funciona a recuperação contextual da memória?');
+  assert.equal(found.length, 1);
+  assert.equal(found[0].id, relevant.id);
+  assert.equal(store.searchMemories(personal.id, 'arquitetura converge').length, 1);
+  assert.deepEqual(store.searchMemories(alpha.id, 'assunto sem correspondência'), []);
+});
