@@ -43,9 +43,14 @@ document.getElementById('settingsBtn').onclick=()=>panel.classList.remove('hidde
 document.getElementById('closeSettings').onclick=()=>panel.classList.add('hidden');
 document.getElementById('saveKey').onclick=async()=>{
   const k=document.getElementById('apiKey').value.trim();if(!k)return;
-  const s=document.getElementById('settingsStatus');
-  try{await window.converge.saveKey(k);s.textContent='Chave guardada com segurança neste computador.';document.getElementById('apiKey').value='';}
-  catch(e){s.textContent='Erro: '+e.message;}
+  const s=document.getElementById('settingsStatus'),button=document.getElementById('saveKey');
+  button.disabled=true;s.textContent='A validar chave com a OpenAI…';
+  try{
+    const result=await window.converge.saveKey(k);
+    document.getElementById('apiKey').value='';
+    s.textContent=result.modelAvailable?'✓ Chave validada, guardada cifrada. CONVERGE está conectado e o modelo GPT-4o mini está disponível.':'✓ Chave validada e guardada cifrada. Atenção: o modelo GPT-4o mini não apareceu na lista de modelos autorizados; verifica o acesso ao modelo.';
+  }catch(e){s.textContent='✕ A chave não foi guardada: '+e.message;}
+  finally{button.disabled=false;}
 };
 document.getElementById('clearKey').onclick=async()=>{await window.converge.clearKey();document.getElementById('settingsStatus').textContent='Chave removida.';};
 document.getElementById('testSearch').onclick=async()=>{
