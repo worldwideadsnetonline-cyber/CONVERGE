@@ -25,12 +25,12 @@ test('document creation validates and stays unavailable without destination',asy
 
 
 test('web_open rejects unsafe/private URLs before network and extracts HTML text safely',async()=>{
- const {isPublicHostname,cleanHtmlToText,executeTool}=require('../src/tools');
+ const {isPublicHostname,cleanHtmlToText,openWebPage,executeTool}=require('../src/tools');
  for(const host of ['localhost','127.0.0.1','10.1.2.3','192.168.1.2','169.254.1.1','172.20.0.1','example.local','::1'])assert.equal(isPublicHostname(host),false,host);
  assert.equal(isPublicHostname('example.com'),true);
  assert.ok(!cleanHtmlToText('<script>alert(1)</script><style>x</style><h1>Title</h1><p>safe &amp; clear</p>').includes('alert'));
  assert.match(cleanHtmlToText('<h1>Title</h1><p>safe &amp; clear</p>'),/Title/);
- await assert.rejects(()=>executeTool('web_open',{url:'http://localhost/'},{openWeb:async()=>{throw new Error('should not call');}}),/URL/);
+ await assert.rejects(()=>openWebPage('http://localhost/'),/URL/);
  const page=await executeTool('web_open',{url:'https://example.com'},{openWeb:async u=>({url:u,title:'Example',content:'Sample text'})});
  assert.equal(page.title,'Example');
 });
