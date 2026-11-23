@@ -114,6 +114,14 @@ async function refreshTasks(){
  list.appendChild(card);});
  }catch(e){status.textContent='Erro ao carregar: '+e.message;}
 }
+document.getElementById('generateTaskPlan').onclick=async()=>{
+ const title=document.getElementById('taskTitle'),description=document.getElementById('taskDescription'),steps=document.getElementById('taskSteps'),status=document.getElementById('taskStatus'),button=document.getElementById('generateTaskPlan');
+ if(!title.value.trim()){status.textContent='Escreva o título da tarefa antes de gerar etapas.';title.focus();return;}
+ button.disabled=true;status.textContent='A IA está a estruturar as etapas…';
+ try{const result=await window.converge.planTask({title:title.value,description:description.value,model:model.value});steps.value=result.steps.join('\n');status.textContent='Etapas sugeridas pela IA. Revise, edite e depois clique em Criar plano.';}
+ catch(e){status.textContent='Não foi possível gerar etapas: '+e.message;}
+ finally{button.disabled=false;}
+};
 document.getElementById('createTask').onclick=async()=>{
  const title=document.getElementById('taskTitle'),description=document.getElementById('taskDescription'),steps=document.getElementById('taskSteps'),status=document.getElementById('taskStatus');
  const rows=steps.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
