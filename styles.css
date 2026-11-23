@@ -2,3 +2,11 @@
 .wide-select{width:100%;margin:6px 0 12px}.workspace-create{display:flex;gap:8px}.workspace-create input,.memory-form input,.memory-form textarea{flex:1;min-width:0;width:100%;padding:11px;background:#0f151c;border:1px solid #354150;color:#fff;border-radius:8px;font:inherit}.memory-form{border-top:1px solid #303b48;margin-top:18px;padding-top:4px}.memory-form textarea{resize:vertical}.memory-form button{margin-top:12px}.memory-list{max-height:260px;overflow:auto;margin-top:18px}.memory-item{border:1px solid #303b48;border-radius:10px;padding:12px;margin-bottom:10px}.memory-item p{white-space:pre-wrap;overflow-wrap:anywhere;color:#b7c2ce;font-size:13px;line-height:1.5}.memory-actions{display:flex;gap:8px}.memory-actions button{padding:7px 10px;font-size:12px}.memory-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:16px}.memory-card{width:min(560px,94%)}
 \n#activeWorkspace{max-width:180px;font-size:12px}\n
 .tool-approval{width:min(850px,100%);margin:0 auto;border:1px solid #b78a36;background:#29251b;border-radius:13px;padding:15px 17px;color:#f4e5c4}.tool-approval p{margin:9px 0;color:#f1dcae;overflow-wrap:anywhere}.tool-approval small{color:#c7b58e;line-height:1.5}.tool-approval-actions{display:flex;gap:9px;margin-top:14px}.tool-approval button:disabled{opacity:.5;cursor:wait}
+
+.task-card textarea{width:100%;padding:11px;background:#0f151c;border:1px solid #354150;color:#fff;border-radius:8px;margin:6px 0;font:inherit;resize:vertical}
+.task-card input{margin:6px 0}
+.task-list{max-height:44vh;overflow:auto;margin-top:16px}
+.task-item{border:1px solid #303b48;border-radius:10px;padding:12px;margin:10px 0}
+.task-item p{color:#b7c2ce;font-size:13px;white-space:pre-wrap}
+.task-step{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #303b48;font-size:13px}
+.task-step span{flex:1}
