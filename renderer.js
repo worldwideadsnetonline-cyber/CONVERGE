@@ -33,7 +33,7 @@ form.addEventListener('submit',async e=>{
     wait.textContent=answer+(result.memoryCount?'\\n\\n✧ Contexto aplicado: '+result.memoryCount+' memória(s) relevante(s) do projeto ativo.':'');c.messages.push({role:'assistant',content:answer});persist();
   }catch(err){
     wait.textContent='Erro: '+err.message;
-    if(err.message.includes('chave API OpenAI ainda não foi configurada')){document.getElementById('settings').classList.remove('hidden');document.getElementById('apiKey').focus();}
+    if(err.message.includes('ligação de IA ainda não está configurada')||err.message.includes('chave API OpenAI ainda não foi configurada')){document.getElementById('settings').classList.remove('hidden');document.getElementById('apiKey').focus();}
   }
   chat.scrollTop=chat.scrollHeight;
 });
