@@ -55,7 +55,7 @@ function createTaskEngine(filePath) {
     const t=data.tasks.find(t=>t.id===taskId); if(!t) throw new Error('Tarefa não encontrada.');
     if(t.status==='cancelled' || t.status==='completed') throw new Error('Tarefa terminal não pode ser alterada.');
     const s=t.steps.find(s=>s.id===stepId); if(!s) throw new Error('Passo não encontrado.');
-    const transitions={pending:['awaiting_approval','running','cancelled'],awaiting_approval:['running','cancelled'],running:['completed','failed','cancelled'],completed:[],failed:['pending','cancelled'],cancelled:[]};
+    const transitions={pending:['awaiting_approval','running','cancelled'],awaiting_approval:['running','failed','pending','cancelled'],running:['completed','failed','cancelled'],completed:[],failed:['pending','cancelled'],cancelled:[]};
     if(!transitions[s.status]?.includes(status)) throw new Error('Transição de estado não permitida: '+s.status+' → '+status);
     const now=new Date().toISOString(); s.status=status;s.updatedAt=now;if(status==='completed'&&typeof details==='string'&&details.trim())s.result=details.trim().slice(0,4000);
     t.status=status==='failed'?'failed':status==='cancelled'?'cancelled':'running';t.updatedAt=now;
