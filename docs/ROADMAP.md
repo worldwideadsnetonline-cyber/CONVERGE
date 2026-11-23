@@ -40,9 +40,9 @@ O roteiro é orientado por capacidades verificáveis. As fases podem sobrepor-se
 **Aceitação:** cada afirmação atribuída à pesquisa tem fonte rastreável; falhas não são ocultadas.
 
 ## Fase 4 — Ferramentas e execução
-- [ ] Catálogo allowlist de ferramentas.
+- [x] Catálogo allowlist inicial: calculadora local e pesquisa web de leitura.
 - [ ] Planos com passos, estado, progresso e cancelamento.
-- [ ] Aprovação explícita para ações externas ou irreversíveis.
+- [x] Aprovação explícita antes de executar ferramentas propostas pela IA (expiração em cinco minutos).
 - [ ] Histórico local de execuções e resultados.
 - [ ] Análise de ficheiros e criação de entregáveis.
 
