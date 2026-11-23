@@ -71,7 +71,7 @@ ipcMain.handle('chat:send',async(_, {messages,model,webSearch,workspaceId})=>{
   }
   const answer=data.choices?.[0]?.message?.content;
   if(!answer)throw new Error('A OpenAI devolveu uma resposta vazia.');
-  return context.length?answer+'\n\nFontes consultadas:\n'+context.map((r,i)=>'['+(i+1)+'] '+r.title+' — '+r.url).join('\n'):answer;
+  return {answer:context.length?answer+'\n\nFontes consultadas:\n'+context.map((r,i)=>'['+(i+1)+'] '+r.title+' — '+r.url).join('\n'):answer,memoryCount:relevantMemories.length};
 });
 // CONVERGE local-first workspace and explicit user-controlled memory.
 ipcMain.handle('workspace:list',()=>store.listWorkspaces());
