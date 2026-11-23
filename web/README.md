@@ -1,21 +1,28 @@
-# CONVERGE Web Platform — foundational rebuild
+# CONVERGE Web Platform
 
-This is a separate web-first platform branch. The existing Electron prototype is preserved on `main`.
+Web-first human-AI collaborative workspace. The original Electron prototype is preserved on main; this web rebuild is on web-platform.
 
-## Vision
-CONVERGE is a collaborative human–AI workspace, not merely a chat UI. It combines conversations, project context, durable memory, tools, web research, and task execution behind a user-controllable interface.
+## Current features
+- Portuguese interface, chat, project selector and project creation
+- Project memory create/list/delete and injection into assistant context
+- OpenAI key stored server-side, not browser-side
+- Responses API chat endpoint with web-search tool enabled
+- Password login, HttpOnly session cookie, basic rate limit and security headers
 
-## Architecture (initial scaffold)
-- `server/`: private server-side AI gateway; API key remains in environment variables and never in browser code.
-- `public/`: browser interface.
-- Project and memory endpoints are currently lightweight local JSON persistence for development. Production needs authenticated users, durable database, backups, and deployment secrets.
-- Web search is a future tool integration; this scaffold does not pretend search is available until configured.
-
-## Run locally
-1. Install Node.js 22+.
-2. From this folder: `npm install`
-3. Set `OPENAI_API_KEY` in the server environment.
+## Local run
+Node.js 20+.
+1. `cd web`
+2. `npm install`
+3. PowerShell: `$env:OPENAI_API_KEY="your-key"` and `$env:CONVERGE_ADMIN_PASSWORD="long-password"`
+   macOS/Linux: export both variables
 4. `npm start`
-5. Open `http://localhost:3000`
+5. Visit http://localhost:3000
 
-Do not deploy publicly until authentication, authorization, rate limits, and secure database storage are implemented.
+## Deploy
+Deploy the `web/` folder as a Node service. Set OPENAI_API_KEY and CONVERGE_ADMIN_PASSWORD as secret environment variables and configure HTTPS. Do not commit secrets.
+
+## Prototype limitations
+- Sessions are in-memory and reset on restart. This is not production multi-user authentication.
+- Workspace data is a local JSON file; ephemeral hosting may lose it after redeploy. Production should use a managed database.
+- Web search tool support depends on API model/account and must be verified at runtime.
+- Before public production: durable auth/session, per-user access controls, CSRF protections as appropriate, backups, audit logs, privacy controls, and monitoring are required.
