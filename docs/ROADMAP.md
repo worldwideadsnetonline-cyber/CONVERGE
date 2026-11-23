@@ -12,9 +12,9 @@ O roteiro é orientado por capacidades verificáveis. As fases podem sobrepor-se
 **Saída:** documentação base e critérios de aceitação.
 
 ## Fase 1 — Núcleo fiável
-- [ ] Introduzir estrutura modular sem quebrar a aplicação.
+- [x] Introduzir módulo inicial de armazenamento local versionado sem quebrar a aplicação.
 - [ ] Validar e tipar contratos IPC.
-- [ ] Adicionar testes unitários para chave, conversa, pesquisa e tratamento de erros.
+- [x] Adicionar testes unitários para espaços de trabalho e memória; restantes testes continuam pendentes.
 - [ ] Implementar persistência versionada com migrações e exportação.
 - [ ] Melhorar CSP, navegação externa, limites e cancelamento de pedidos.
 - [ ] Criar pipeline de CI com testes, análise estática e build Windows.
