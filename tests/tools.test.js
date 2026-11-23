@@ -1,0 +1,6 @@
+'use strict';
+const test=require('node:test');const assert=require('node:assert/strict');const {calculate,executeTool}=require('../src/tools');
+test('calcula expressões sem eval',()=>{assert.equal(calculate('(125 * 4) / 5').result,100);assert.equal(calculate('2^3 + 4').result,12);assert.equal(calculate('-5 + 2 * 3').result,1);});
+test('rejeita divisão por zero, código e limites',()=>{assert.throws(()=>calculate('1/0'),/zero/);assert.throws(()=>calculate('process.exit()'),/caracteres/);assert.throws(()=>calculate('2^99'),/Expoente/);assert.throws(()=>calculate('1'.repeat(200)),/longa/);});
+test('executa apenas ferramentas allowlist',async()=>{await assert.rejects(()=>executeTool('shell',{command:'whoami'}),/não autorizada/);assert.equal((await executeTool('calculator',{expression:'8*7'})).result,56);});
+test('pesquisa exige adaptador e consulta válida',async()=>{await assert.rejects(()=>executeTool('web_search',{query:'teste'}),/indisponível/);const x=await executeTool('web_search',{query:'CONVERGE'},{searchWeb:async q=>[{title:q,url:'https://example.com',snippet:'ok'}]});assert.equal(x.results[0].title,'CONVERGE');await assert.rejects(()=>executeTool('web_search',{query:''},{searchWeb:async()=>[]}),/inválida/);});
