@@ -74,7 +74,23 @@ function createStore(filePath) {
     if (before !== data.memories.length) persist();
     return before !== data.memories.length;
   }
+  function searchMemories(workspaceId, query, limit = 5) {
+    load();
+    if (typeof workspaceId !== 'string' || !data.workspaces.some(w => w.id === workspaceId)) return [];
+    const terms = [...new Set(tokenize(query))];
+    if (!terms.length) return [];
+    const cap = Number.isInteger(limit) ? Math.max(1, Math.min(limit, 10)) : 5;
+    return snapshot(data.memories.filter(m => m.workspaceId === workspaceId).map(m => {
+      const title = tokenize(m.title), body = tokenize(m.content);
+      const score = terms.reduce((sum, term) => sum + (title.includes(term) ? 4 : 0) + (body.includes(term) ? 1 : 0), 0);
+      return { ...m, relevance: score };
+    }).filter(m => m.relevance > 0).sort((a,b) => b.relevance-a.relevance || b.updatedAt.localeCompare(a.updatedAt)).slice(0, cap));
+  }
+  function tokenize(s) {
+    const ignored = new Set('a o os as um uma uns umas de do da dos das e em no na nos nas para por com sem que se ao aos eu tu ele ela nos voces voce meu minha meus minhas teu sua suas isto isso aqui ali como mais menos muito muita pouco pode podem deve devem sobre entre ate ja nao sim'.split(' '));
+    return String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().match(/[a-z0-9]{3,}/g)?.filter(t => !ignored.has(t)) || [];
+  }
   function exportData() { load(); return snapshot(data); }
-  return { listWorkspaces, createWorkspace, listMemories, saveMemory, deleteMemory, exportData };
+  return { listWorkspaces, createWorkspace, listMemories, searchMemories, saveMemory, deleteMemory, exportData };
 }
 module.exports = { createStore };
