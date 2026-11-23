@@ -12,5 +12,10 @@ contextBridge.exposeInMainWorld('converge',{
   listMemories:workspaceId=>ipcRenderer.invoke('memory:list',workspaceId),
   saveMemory:input=>ipcRenderer.invoke('memory:save',input),
   deleteMemory:id=>ipcRenderer.invoke('memory:delete',id),
-  exportData:()=>ipcRenderer.invoke('data:export')
+  exportData:()=>ipcRenderer.invoke('data:export'),
+  listTasks:()=>ipcRenderer.invoke('task:list'),
+  createTask:input=>ipcRenderer.invoke('task:create',input),
+  updateTaskStep:(taskId,stepId,status,details)=>ipcRenderer.invoke('task:updateStep',taskId,stepId,status,details),
+  cancelTask:taskId=>ipcRenderer.invoke('task:cancel',taskId),
+  taskEvents:taskId=>ipcRenderer.invoke('task:events',taskId)
 });
