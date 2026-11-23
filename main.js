@@ -36,7 +36,7 @@ async function searchWeb(query){
   return items;
 }
 ipcMain.handle('web:search',async(_,query)=>searchWeb(query));
-ipcMain.handle('chat:send',async(_, {messages,model,webSearch})=>{
+ipcMain.handle('chat:send',async(_, {messages,model,webSearch,workspaceId})=>{
   if(!fs.existsSync(keyFile())){
     const last=(messages||[]).filter(m=>m.role==='user').at(-1)?.content||'';
     if(/^(ol[áa]|oi|ola|olá|bom dia|boa tarde|boa noite|hello|hi)[!.?\s]*$/i.test(last.trim()))return 'Olá! Sou o CONVERGE. Para conversar sobre qualquer assunto, configure a sua chave API OpenAI em Definições. Também posso pesquisar na internet quando essa opção estiver ativada.';
