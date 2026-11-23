@@ -166,7 +166,8 @@ ipcMain.handle('task:approve-step',async(_,pendingId)=>{
   try{taskEngine.updateStep(pending.taskId,pending.stepId,'failed','Falha: '+err.message);}catch{}
   throw err;
  }});
-ipcMain.handle('task:reject-step',(_,id)=>{const pending=pendingTaskActions.get(id);if(!pending)return false;pendingTaskActions.delete(id);taskEngine.updateStep(pending.taskId,pending.stepId,'pending','Execução recusada pelo utilizador');return true;});\nipcMain.handle('task:list',()=>taskEngine.listTasks());
+ipcMain.handle('task:reject-step',(_,id)=>{const pending=pendingTaskActions.get(id);if(!pending)return false;pendingTaskActions.delete(id);taskEngine.updateStep(pending.taskId,pending.stepId,'pending','Execução recusada pelo utilizador');return true;});
+ipcMain.handle('task:list',()=>taskEngine.listTasks());
 ipcMain.handle('task:create',(_,input)=>taskEngine.createTask(input));
 ipcMain.handle('task:updateStep',(_,taskId,stepId,status,details)=>taskEngine.updateStep(taskId,stepId,status,details));
 ipcMain.handle('task:cancel',(_,taskId)=>taskEngine.cancelTask(taskId));
