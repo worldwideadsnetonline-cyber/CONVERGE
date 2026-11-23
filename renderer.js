@@ -8,6 +8,18 @@ function active(){return conversations.find(c=>c.id===activeId);}
 function renderHistory(){historyEl.innerHTML='';conversations.slice().reverse().forEach(c=>{const b=document.createElement('button');b.textContent=c.title||'Nova conversa';b.onclick=()=>openChat(c.id);historyEl.appendChild(b);});}
 function openChat(id){activeId=id;chat.innerHTML='';active().messages.forEach(m=>addMessage(m.role,m.content));}
 function addMessage(role,text){const d=document.createElement('div');d.className='message '+role;d.textContent=text;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d;}
+function showToolApproval(message,pending,c){
+ const card=document.createElement('div');card.className='tool-approval';
+ const title=document.createElement('strong');title.textContent='Aprovação necessária';
+ const description=document.createElement('p');description.textContent=pending.description;
+ const note=document.createElement('small');note.textContent='Nada será executado sem a tua autorização. A proposta expira em cinco minutos.';
+ const actions=document.createElement('div');actions.className='tool-approval-actions';
+ const approve=document.createElement('button');approve.className='primary';approve.textContent='Aprovar e executar';
+ const reject=document.createElement('button');reject.className='secondary';reject.textContent='Recusar';
+ approve.onclick=async()=>{approve.disabled=true;reject.disabled=true;message.textContent='A executar a ação aprovada…';try{const result=await window.converge.approveTool(pending.id);message.textContent=result.answer+(result.memoryCount?'\\n\\n✧ Contexto aplicado: '+result.memoryCount+' memória(s).':'');c.messages.push({role:'assistant',content:result.answer});persist();}catch(e){message.textContent='Erro ao executar a ação aprovada: '+e.message;}card.remove();};
+ reject.onclick=async()=>{await window.converge.rejectTool(pending.id);message.textContent='Ação recusada. Nada foi executado.';c.messages.push({role:'assistant',content:'Ação recusada pelo utilizador. Nada foi executado.'});persist();card.remove();};
+ actions.append(approve,reject);card.append(title,description,note,actions);message.after(card);chat.scrollTop=chat.scrollHeight;
+}
 function newChat(){activeId=null;chat.innerHTML='<div id="welcome" class="welcome"><div class="welcome-icon">✦</div><h1>Em que posso ajudar?</h1><p>Converse, explore ideias e crie algo novo.</p></div>';}
 form.addEventListener('submit',async e=>{
   e.preventDefault();const text=prompt.value.trim();if(!text)return;prompt.value='';document.getElementById('welcome')?.remove();
@@ -17,7 +29,8 @@ form.addEventListener('submit',async e=>{
   try{
     const result=await window.converge.send(c.messages,model.value,{webSearch:document.getElementById('webSearch').checked,workspaceId:activeWorkspace.value});
     const answer=typeof result==='string'?result:result.answer;
-    wait.textContent=answer+(result.memoryCount?'\n\n✧ Contexto aplicado: '+result.memoryCount+' memória(s) relevante(s) do projeto ativo.':'');c.messages.push({role:'assistant',content:answer});persist();
+    if(result.pendingAction){wait.textContent=answer;showToolApproval(wait,result.pendingAction,c);return;}
+    wait.textContent=answer+(result.memoryCount?'\\n\\n✧ Contexto aplicado: '+result.memoryCount+' memória(s) relevante(s) do projeto ativo.':'');c.messages.push({role:'assistant',content:answer});persist();
   }catch(err){
     wait.textContent='Erro: '+err.message;
     if(err.message.includes('chave API OpenAI ainda não foi configurada')){document.getElementById('settings').classList.remove('hidden');document.getElementById('apiKey').focus();}
