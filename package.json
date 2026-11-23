@@ -7,7 +7,7 @@
     "start": "electron .",
     "dist:win": "electron-builder --win nsis --publish never",
     "test": "node --test",
-    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check src/store.js && node --check tests/store.test.js && node --check src/tools.js && node --check tests/tools.test.js"
+    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check src/store.js && node --check src/task-engine.js && node --check tests/store.test.js && node --check tests/task-engine.test.js && node --check src/tools.js && node --check tests/tools.test.js"
   },
   "devDependencies": {
     "electron": "^34.0.0",
