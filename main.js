@@ -54,6 +54,18 @@ async function requestOpenAI(apiKey,payload){
   if(!resp.ok){if(resp.status===401)throw new Error('A chave API foi rejeitada. Confirme a chave nas Definições.');if(resp.status===429)throw new Error('Limite ou saldo da API OpenAI atingido. Verifique a faturação.');throw new Error(data.error?.message||'Falha na API OpenAI (HTTP '+resp.status+').');}
   return data;
 }
+ipcMain.handle('task:plan',async(_,input={})=>{
+ const title=String(input.title||'').trim().slice(0,120),description=String(input.description||'').trim().slice(0,2000);
+ if(!title)throw new Error('Introduza um título para a tarefa.');
+ const key=getApiKey();
+ const data=await requestOpenAI(key,{model:input.model||'gpt-4o-mini',response_format:{type:'json_object'},messages:[
+ {role:'system',content:'Crie um plano de trabalho para o utilizador. Retorne JSON estrito com a propriedade steps contendo uma lista de 3 a 8 strings concisas, concretas e sequenciais. Não execute ações, não invente resultados. As etapas devem ser úteis, seguras e revisáveis.'},
+ {role:'user',content:'Tarefa: '+title+'\nContexto: '+description}
+ ]});
+ let parsed;try{parsed=JSON.parse(data.choices?.[0]?.message?.content||'{}');}catch{throw new Error('A IA devolveu um plano inválido.');}
+ if(!Array.isArray(parsed.steps)||parsed.steps.length<1||parsed.steps.length>8||parsed.steps.some(s=>typeof s!=='string'||!s.trim()||s.length>500))throw new Error('O plano gerado não passou na validação.');
+ return {steps:parsed.steps.map(s=>s.trim())};
+});
 ipcMain.handle('chat:send',async(_, {messages,model,webSearch,workspaceId})=>{
   for(const [pendingId,pending] of pendingActions)if(Date.now()-pending.createdAt>5*60*1000)pendingActions.delete(pendingId);
   const last=(messages||[]).filter(m=>m.role==='user').at(-1)?.content||'';
