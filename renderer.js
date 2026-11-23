@@ -1,5 +1,5 @@
 const chat=document.getElementById('chat'),form=document.getElementById('form'),prompt=document.getElementById('prompt'),model=document.getElementById('model'),historyEl=document.getElementById('history');
-let conversations=JSON.parse(localStorage.getItem('converge-chats')||'[]'),activeId=null;
+let conversations=JSON.parse(localStorage.getItem('converge-chats')||'[]'),activeId=null,workspaces=[];\nconst activeWorkspace=document.getElementById('activeWorkspace');\nasync function loadWorkspaces(){workspaces=await window.converge.listWorkspaces();const saved=localStorage.getItem('converge-active-workspace');activeWorkspace.innerHTML='';workspaces.forEach(w=>{const o=document.createElement('option');o.value=w.id;o.textContent=w.name;activeWorkspace.appendChild(o);});if(workspaces.some(w=>w.id===saved))activeWorkspace.value=saved;else if(workspaces[0])activeWorkspace.value=workspaces[0].id;localStorage.setItem('converge-active-workspace',activeWorkspace.value);}\nactiveWorkspace.addEventListener('change',()=>{localStorage.setItem('converge-active-workspace',activeWorkspace.value);});
 function persist(){localStorage.setItem('converge-chats',JSON.stringify(conversations));renderHistory();}
 function active(){return conversations.find(c=>c.id===activeId);}
 function renderHistory(){historyEl.innerHTML='';conversations.slice().reverse().forEach(c=>{const b=document.createElement('button');b.textContent=c.title||'Nova conversa';b.onclick=()=>openChat(c.id);historyEl.appendChild(b);});}
@@ -48,10 +48,10 @@ async function refreshMemory(){
   const status=document.getElementById('memoryStatus');
   try{
     const spaces=await window.converge.listWorkspaces();
-    const selected=workspaceSelect.value;
+    const selected=activeWorkspace.value||workspaceSelect.value;
     workspaceSelect.innerHTML='';
     spaces.forEach(w=>{const o=document.createElement('option');o.value=w.id;o.textContent=w.name;workspaceSelect.appendChild(o);});
-    if(spaces.some(w=>w.id===selected))workspaceSelect.value=selected;
+    if(spaces.some(w=>w.id===selected))workspaceSelect.value=selected;else if(activeWorkspace.value)workspaceSelect.value=activeWorkspace.value;
     const memories=await window.converge.listMemories(workspaceSelect.value);
     memoryList.innerHTML='';
     memories.forEach(m=>{
@@ -69,7 +69,7 @@ async function refreshMemory(){
 workspaceSelect.addEventListener('change',refreshMemory);
 document.getElementById('createWorkspace').onclick=async()=>{
   const field=document.getElementById('workspaceName');
-  try{await window.converge.createWorkspace({name:field.value});field.value='';await refreshMemory();document.getElementById('memoryStatus').textContent='Projeto criado.';}
+  try{await window.converge.createWorkspace({name:field.value});field.value='';await loadWorkspaces();workspaceSelect.value=activeWorkspace.value;await refreshMemory();document.getElementById('memoryStatus').textContent='Projeto criado.';}
   catch(e){document.getElementById('memoryStatus').textContent='Erro: '+e.message;}
 };
 document.getElementById('saveMemory').onclick=async()=>{
