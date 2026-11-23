@@ -2,9 +2,11 @@ const {app,BrowserWindow,ipcMain,safeStorage}=require('electron');
 const path=require('path');
 const fs=require('fs');
 const {createStore}=require('./src/store');
+const {createTaskEngine}=require('./src/task-engine');
 const {toolDefinitions,executeTool}=require('./src/tools');
 const {randomUUID}=require('node:crypto');
 let store;
+let taskEngine;
 let win;
 const pendingActions=new Map();
 const keyFile=()=>path.join(app.getPath('userData'),'api-key.enc');
@@ -12,7 +14,7 @@ function createWindow(){
   win=new BrowserWindow({width:1080,height:760,minWidth:720,minHeight:560,backgroundColor:'#10151c',webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   win.loadFile('index.html');
 }
-app.whenReady().then(()=>{store=createStore(path.join(app.getPath('userData'),'converge-data.json'));store.listWorkspaces();createWindow();});
+app.whenReady().then(()=>{store=createStore(path.join(app.getPath('userData'),'converge-data.json'));store.listWorkspaces();taskEngine=createTaskEngine(path.join(app.getPath('userData'),'converge-tasks.json'));taskEngine.listTasks();createWindow();});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 ipcMain.handle('key:save',async(_,key)=>{
@@ -109,3 +111,8 @@ ipcMain.handle('memory:list',(_,workspaceId)=>store.listMemories(workspaceId));
 ipcMain.handle('memory:save',(_,input)=>store.saveMemory(input));
 ipcMain.handle('memory:delete',(_,id)=>store.deleteMemory(id));
 ipcMain.handle('data:export',()=>store.exportData());
+ipcMain.handle('task:list',()=>taskEngine.listTasks());
+ipcMain.handle('task:create',(_,input)=>taskEngine.createTask(input));
+ipcMain.handle('task:updateStep',(_,taskId,stepId,status,details)=>taskEngine.updateStep(taskId,stepId,status,details));
+ipcMain.handle('task:cancel',(_,taskId)=>taskEngine.cancelTask(taskId));
+ipcMain.handle('task:events',(_,taskId)=>taskEngine.listEvents(taskId));
