@@ -31,23 +31,29 @@ function createDocument(title,content,baseDirectory){
  return {created:true,filePath:file,format:'Markdown'};
 }
 function isPublicHostname(host){
- const h=String(host||'').toLowerCase().replace(/^\\[|\\]$/g,'');
+ const h=String(host||'').toLowerCase().replace(/^\[|\]$/g,'');
  if(!h||h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h.endsWith('.internal'))return false;
- if(/^127\\.|^10\\.|^192\\.168\\.|^169\\.254\\.|^172\\.(1[6-9]|2\\d|3[01])\\.|^0\\.|^224\\.|^255\\./.test(h))return false;
+ if(/^127\.|^10\.|^192\.168\.|^169\.254\.|^172\.(1[6-9]|2\d|3[01])\.|^0\.|^224\.|^255\./.test(h))return false;
  if(h==='::1'||h==='::'||h.startsWith('fe80:')||h.startsWith('fc')||h.startsWith('fd')||h.startsWith('ff'))return false;
+ if(/^::ffff:(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(h))return false;
  return true;
 }
 function cleanHtmlToText(html){
- return String(html||'').replace(/<(script|style|noscript|svg|iframe|form)\\b[\\s\\S]*?<\\/\\1>/gi,' ')
- .replace(/<\\/(?:p|div|article|section|li|h[1-6]|br|tr)>/gi,'\\n')
+ return String(html||'').replace(/<(script|style|noscript|svg|iframe|form)\b[\s\S]*?<\/\1>/gi,' ')
+ .replace(/<\/(?:p|div|article|section|li|h[1-6]|br|tr)>/gi,'\n')
  .replace(/<[^>]*>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'")
- .replace(/[ \\t]+/g,' ').replace(/\\n[ \\t]+/g,'\\n').replace(/\\n{3,}/g,'\\n\\n').trim();
+ .replace(/[ \t]+/g,' ').replace(/\n[ \t]+/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 async function openWebPage(url){
+ const dns=require('node:dns').promises;
  let current;
  try{current=new URL(url);}catch{throw new Error('URL inválida.');}
  for(let hop=0;hop<=4;hop++){
   if(!['http:','https:'].includes(current.protocol)||!isPublicHostname(current.hostname)||current.username||current.password)throw new Error('URL não permitida: apenas páginas públicas http/https.');
+  try{
+   const resolved=await dns.lookup(current.hostname,{all:true});
+   if(!resolved.length||resolved.some(x=>!isPublicHostname(x.address)))throw new Error('Destino de rede privada bloqueado.');
+  }catch(e){if(e.message==='Destino de rede privada bloqueado.')throw e;throw new Error('Não foi possível validar o domínio público.');}
   const response=await fetch(current.toString(),{headers:{'User-Agent':'Mozilla/5.0 (compatible; CONVERGE/1.0)','Accept':'text/html,text/plain,application/xhtml+xml'},signal:AbortSignal.timeout(18000),redirect:'manual'});
   if([301,302,303,307,308].includes(response.status)){
    if(hop===4)throw new Error('A página excedeu o limite de redirecionamentos.');
@@ -56,9 +62,9 @@ async function openWebPage(url){
   }
   if(!response.ok)throw new Error('Falha ao abrir página (HTTP '+response.status+').');
   const type=response.headers.get('content-type')||'';
-  if(!/text\\/(html|plain)|application\\/(xhtml\\+xml|xml)/i.test(type))throw new Error('A página não devolveu conteúdo de texto legível.');
+  if(!/text\/(html|plain)|application\/(xhtml\+xml|xml)/i.test(type))throw new Error('A página não devolveu conteúdo de texto legível.');
   const raw=(await response.text()).slice(0,180000);
-  const title=(raw.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i)||[])[1]||current.hostname;
+  const title=(raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||current.hostname;
   const text=type.includes('text/plain')?raw:cleanHtmlToText(raw);
   return {url:current.toString(),title:cleanHtmlToText(title).slice(0,250),content:text.slice(0,16000),truncated:text.length>16000};
  }
