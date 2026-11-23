@@ -1,13 +1,13 @@
 {
   "name": "converge",
-  "version": "1.2.0",
-  "description": "CONVERGE — Human x AI continuous collaboration workspace",
+  "version": "1.3.0",
+  "description": "CONVERGE — Human x AI continuous collaboration workspace with approved tools",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dist:win": "electron-builder --win nsis --publish never",
     "test": "node --test",
-    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check src/store.js && node --check tests/store.test.js"
+    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check src/store.js && node --check tests/store.test.js && node --check src/tools.js && node --check tests/tools.test.js"
   },
   "devDependencies": {
     "electron": "^34.0.0",
