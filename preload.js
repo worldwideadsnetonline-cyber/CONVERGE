@@ -1,0 +1,1 @@
+const {contextBridge,ipcRenderer}=require('electron');contextBridge.exposeInMainWorld('converge',{send:(messages,model)=>ipcRenderer.invoke('chat:send',{messages,model}),saveKey:key=>ipcRenderer.invoke('key:save',key),hasKey:()=>ipcRenderer.invoke('key:has'),clearKey:()=>ipcRenderer.invoke('key:clear')});

@@ -1,0 +1,6 @@
+{
+  "name":"converge","version":"1.0.0","description":"CONVERGE AI desktop chat","main":"main.js",
+  "scripts":{"start":"electron .","dist:win":"electron-builder --win nsis"},
+  "devDependencies":{"electron":"^34.0.0","electron-builder":"^25.1.8"},
+  "build":{"appId":"com.worldwideadsnetonline.converge","productName":"CONVERGE","files":["main.js","preload.js","renderer.js","index.html","styles.css","package.json"],"win":{"target":"nsis","artifactName":"CONVERGE-Setup.exe"},"nsis":{"oneClick":true,"perMachine":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true}}
+}

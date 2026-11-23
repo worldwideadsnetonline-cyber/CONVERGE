@@ -1,0 +1,23 @@
+name: Build CONVERGE for Windows
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Validate scripts
+        run: node --check main.js && node --check preload.js && node --check renderer.js
+      - run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CONVERGE-Windows-Installer
+          path: dist/CONVERGE-Setup.exe
+          retention-days: 14
