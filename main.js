@@ -18,11 +18,26 @@ function createWindow(){
 app.whenReady().then(()=>{store=createStore(path.join(app.getPath('userData'),'converge-data.json'));store.listWorkspaces();taskEngine=createTaskEngine(path.join(app.getPath('userData'),'converge-tasks.json'));taskEngine.listTasks();createWindow();});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
+async function validateAPIKey(key){
+  let response;
+  try{response=await fetch('https://api.openai.com/v1/models',{headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(20000)});}
+  catch(e){throw new Error('Não foi possível validar a chave. Verifique a internet e tente novamente. '+e.message);}
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+    if(response.status===401)throw new Error('Chave API inválida ou revogada. Verifique a chave e tente novamente.');
+    if(response.status===429)throw new Error('A API está temporariamente limitada. Tente novamente mais tarde.');
+    throw new Error(data.error?.message||'A validação falhou (HTTP '+response.status+').');
+  }
+  const models=Array.isArray(data.data)?data.data.map(x=>x.id):[];
+  return {valid:true,modelAvailable:models.includes('gpt-4o-mini')};
+}
 ipcMain.handle('key:save',async(_,key)=>{
   if(typeof key!=='string'||!key.trim())throw new Error('Introduza uma chave API válida.');
   if(!safeStorage.isEncryptionAvailable())throw new Error('O armazenamento seguro do Windows não está disponível.');
-  fs.writeFileSync(keyFile(),safeStorage.encryptString(key.trim()),{mode:0o600});
-  return true;
+  const clean=key.trim();
+  const validation=await validateAPIKey(clean);
+  fs.writeFileSync(keyFile(),safeStorage.encryptString(clean),{mode:0o600});
+  return validation;
 });
 ipcMain.handle('key:has',()=>fs.existsSync(keyFile()));
 ipcMain.handle('key:clear',()=>{try{fs.unlinkSync(keyFile());}catch{}return true;});
@@ -70,7 +85,7 @@ ipcMain.handle('task:plan',async(_,input={})=>{
 ipcMain.handle('chat:send',async(_, {messages,model,webSearch,workspaceId})=>{
   for(const [pendingId,pending] of pendingActions)if(Date.now()-pending.createdAt>5*60*1000)pendingActions.delete(pendingId);
   const last=(messages||[]).filter(m=>m.role==='user').at(-1)?.content||'';
-  if(!fs.existsSync(keyFile()) && /^(ol[áa]|oi|ola|olá|bom dia|boa tarde|boa noite|hello|hi)[!.?\\s]*$/i.test(last.trim()))return {answer:'Olá! Sou o CONVERGE. Para conversar sobre qualquer assunto, configure a sua chave API OpenAI em Definições.',memoryCount:0};
+  if(!fs.existsSync(keyFile())&&last.trim())throw new Error('A ligação de IA ainda não está configurada. Abra Definições, introduza a chave API e clique em Guardar chave para validar automaticamente.');
   const apiKey=getApiKey();
   const lastUser=(messages||[]).filter(m=>m.role==='user').at(-1)?.content||'';
   const wantsSearch=Boolean(webSearch)||/\b(pesquis|internet|web|not[ií]cias|hoje|atual|actual|agora|pre[cç]o|tempo|clima|202[5-9]|202[0-9]|últim[oa]s?|recentes?)\b/i.test(lastUser);
