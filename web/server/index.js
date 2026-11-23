@@ -34,7 +34,7 @@ app.post('/api/tasks/:projectId/:taskId/execute',async(req,res)=>{const d=readSt
 // --- CONVERGE Bridge: authenticated event and command relay ---
 const BRIDGE_SECRET=process.env.CONVERGE_BRIDGE_SECRET||'';
 const bridgeEvents=[],bridgeCommands=[];
-function bridgeAuth(req,res,next){const supplied=req.headers['x-converge-bridge-token'];if(!BRIDGE_SECRET||!supplied||Buffer.byteLength(String(supplied))!==Buffer.byteLength(BRIDGE_SECRET)||!crypto.timingSafeEqual(Buffer.from(String(supplied)),Buffer.from(BRIDGE_SECRET)){return res.status(401).json({error:'Bridge authentication failed'});}next()}
+function bridgeAuth(req,res,next){const supplied=req.headers['x-converge-bridge-token'];if(!BRIDGE_SECRET||!supplied||Buffer.byteLength(String(supplied))!==Buffer.byteLength(BRIDGE_SECRET)||!crypto.timingSafeEqual(Buffer.from(String(supplied)),Buffer.from(BRIDGE_SECRET))){return res.status(401).json({error:'Bridge authentication failed'});}next()}
 app.get('/api/bridge/status',(req,res)=>res.json({configured:Boolean(BRIDGE_SECRET),bridge:'CONVERGE Control Bridge',protocol:'polling-v1'}));
 app.post('/api/bridge/events',bridgeAuth,(req,res)=>{const event={id:crypto.randomUUID(),type:String(req.body?.type||'event').slice(0,80),projectId:String(req.body?.projectId||'default').slice(0,100),payload:req.body?.payload||{},createdAt:new Date().toISOString()};bridgeEvents.push(event);while(bridgeEvents.length>200)bridgeEvents.shift();res.status(202).json({accepted:true,id:event.id})});
 app.get('/api/bridge/events',bridgeAuth,(req,res)=>{const after=Number(req.query.after||0);res.json({events:bridgeEvents.slice(Math.max(0,after)),next:bridgeEvents.length})});
