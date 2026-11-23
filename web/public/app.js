@@ -1,6 +1,7 @@
 const $=s=>document.querySelector(s);
 const conversation=$('#conversation'),welcome=$('#welcome'),message=$('#message'),projectSelect=$('#projects');
-let currentProject='default';\nlet openaiKey=localStorage.getItem('converge_openai_key')||'';
+let currentProject='default';
+let openaiKey=localStorage.getItem('converge_openai_key')||'';
 async function api(url,options={}){const r=await fetch(url,{credentials:'same-origin',headers:{'Content-Type':'application/json','x-openai-api-key':openaiKey,...(options.headers||{})},...options});const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed');return data}
 function appendMessage(role,text){welcome?.remove();const el=document.createElement('div');el.className='msg '+role;const label=document.createElement('div');label.className='role';label.textContent=role==='user'?'YOU':'CONVERGE';const body=document.createElement('div');body.textContent=text;el.append(label,body);conversation.append(el);conversation.scrollTop=conversation.scrollHeight;return body}
 async function loadProjects(){const projects=await api('/api/projects');projectSelect.replaceChildren();projects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;projectSelect.append(o)});if(projects.some(p=>p.id===currentProject))projectSelect.value=currentProject;else currentProject=projects[0]?.id||'default'}
