@@ -2,10 +2,8 @@ name: CONVERGE Web checks
 on:
   push:
     branches: [web-platform]
-    paths: ['web/**']
   pull_request:
     branches: [web-platform]
-    paths: ['web/**']
 jobs:
   syntax:
     runs-on: ubuntu-latest
