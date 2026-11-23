@@ -22,7 +22,7 @@ function createDocument(title,content,baseDirectory){
  if(typeof title!=='string'||!title.trim()||title.length>120)throw new Error('Título de documento inválido.');
  if(typeof content!=='string'||!content.trim()||content.length>30000)throw new Error('Conteúdo inválido (máximo 30.000 caracteres).');
  if(typeof baseDirectory!=='string'||!baseDirectory)throw new Error('Destino de documentos indisponível.');
- const safe=title.trim().replace(/[<>:"\\/|?*\\u0000-\\u001F]/g,'-').replace(/[. ]+$/,'').slice(0,100)||'Documento';
+ const safe=Array.from(title.trim()).map(ch=>{const code=ch.charCodeAt(0);return code<32||'<>:"/\\|?*'.includes(ch)?'-':ch;}).join('').replace(/[. ]+$/,'').slice(0,100)||'Documento';
  const dir=path.join(baseDirectory,'CONVERGE');fs.mkdirSync(dir,{recursive:true});
  let file=path.join(dir,safe+'.md'),n=1;
  while(fs.existsSync(file)){file=path.join(dir,safe+' ('+(n++)+').md');}
