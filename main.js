@@ -8,7 +8,8 @@ const {randomUUID}=require('node:crypto');
 let store;
 let taskEngine;
 let win;
-const pendingActions=new Map();\nconst pendingTaskActions=new Map();
+const pendingActions=new Map();
+const pendingTaskActions=new Map();
 const keyFile=()=>path.join(app.getPath('userData'),'api-key.enc');
 function createWindow(){
   win=new BrowserWindow({width:1080,height:760,minWidth:720,minHeight:560,backgroundColor:'#10151c',webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
