@@ -98,3 +98,25 @@ document.getElementById('exportData').onclick=async()=>{
   try{const data=await window.converge.exportData();const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='converge-dados.json';a.click();URL.revokeObjectURL(url);document.getElementById('memoryStatus').textContent='Exportação iniciada.';}
   catch(e){document.getElementById('memoryStatus').textContent='Erro: '+e.message;}
 };
+
+const taskPanel=document.getElementById('taskPanel');
+document.getElementById('taskBtn').onclick=()=>{taskPanel.classList.remove('hidden');refreshTasks();};
+document.getElementById('closeTasks').onclick=()=>taskPanel.classList.add('hidden');
+async function refreshTasks(){
+ const list=document.getElementById('taskList'),status=document.getElementById('taskStatus');list.innerHTML='';
+ try{const tasks=await window.converge.listTasks();status.textContent=tasks.length+' tarefa(s) guardada(s).';
+ tasks.forEach(t=>{const card=document.createElement('article');card.className='task-item';const title=document.createElement('strong');title.textContent=t.title+' · '+t.status;const desc=document.createElement('p');desc.textContent=t.description;card.append(title,desc);
+ t.steps.forEach(s=>{const line=document.createElement('div');line.className='task-step';const label=document.createElement('span');label.textContent=s.order+'. '+s.text+' ['+s.status+']';line.append(label);
+ if(s.status==='pending'||s.status==='failed'){const start=document.createElement('button');start.className='secondary';start.textContent='Iniciar';start.onclick=async()=>{await window.converge.updateTaskStep(t.id,s.id,'running');refreshTasks();};line.append(start);}
+ else if(s.status==='running'){const done=document.createElement('button');done.className='primary';done.textContent='Concluir';done.onclick=async()=>{await window.converge.updateTaskStep(t.id,s.id,'completed');refreshTasks();};line.append(done);}
+ card.append(line);});
+ if(!['completed','cancelled'].includes(t.status)){const cancel=document.createElement('button');cancel.className='secondary';cancel.textContent='Cancelar tarefa';cancel.onclick=async()=>{await window.converge.cancelTask(t.id);refreshTasks();};card.append(cancel);}
+ list.appendChild(card);});
+ }catch(e){status.textContent='Erro ao carregar: '+e.message;}
+}
+document.getElementById('createTask').onclick=async()=>{
+ const title=document.getElementById('taskTitle'),description=document.getElementById('taskDescription'),steps=document.getElementById('taskSteps'),status=document.getElementById('taskStatus');
+ const rows=steps.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ try{await window.converge.createTask({title:title.value,description:description.value,steps:rows.map(text=>({text}))});title.value='';description.value='';steps.value='';status.textContent='Plano criado e guardado localmente.';refreshTasks();}
+ catch(e){status.textContent='Erro: '+e.message;}
+};
