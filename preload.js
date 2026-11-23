@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('converge',{
   saveMemory:input=>ipcRenderer.invoke('memory:save',input),
   deleteMemory:id=>ipcRenderer.invoke('memory:delete',id),
   exportData:()=>ipcRenderer.invoke('data:export'),
+  planTask:(input)=>ipcRenderer.invoke('task:plan',input),
   listTasks:()=>ipcRenderer.invoke('task:list'),
   createTask:input=>ipcRenderer.invoke('task:create',input),
   updateTaskStep:(taskId,stepId,status,details)=>ipcRenderer.invoke('task:updateStep',taskId,stepId,status,details),
