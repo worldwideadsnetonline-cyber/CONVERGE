@@ -102,15 +102,26 @@ document.getElementById('exportData').onclick=async()=>{
 const taskPanel=document.getElementById('taskPanel');
 document.getElementById('taskBtn').onclick=()=>{taskPanel.classList.remove('hidden');refreshTasks();};
 document.getElementById('closeTasks').onclick=()=>taskPanel.classList.add('hidden');
+function showTaskApproval(pending,taskId,stepId){
+ const card=document.createElement('article');card.className='task-item tool-approval';
+ const title=document.createElement('strong');title.textContent='Aprovação necessária — execução de etapa';
+ const desc=document.createElement('p');desc.textContent=pending.description;
+ const note=document.createElement('small');note.textContent='A ferramenta só será executada após aprovação. Proposta expira em 5 minutos.';
+ const approve=document.createElement('button');approve.className='primary';approve.textContent='Aprovar e executar';
+ const reject=document.createElement('button');reject.className='secondary';reject.textContent='Recusar';
+ approve.onclick=async()=>{approve.disabled=true;reject.disabled=true;desc.textContent='A executar ferramenta aprovada…';try{const result=await window.converge.approveTaskStep(pending.id);desc.textContent='Concluído: '+result.answer;document.getElementById('taskStatus').textContent='Etapa concluída com resultado guardado.';refreshTasks();}catch(err){desc.textContent='Erro: '+err.message;document.getElementById('taskStatus').textContent=desc.text;}};
+ reject.onclick=async()=>{await window.converge.rejectTaskStep(pending.id);desc.textContent='Ação recusada; nenhuma ferramenta executada.';reject.disabled=true;approve.disabled=true;};
+ card.append(title,desc,note,approve,reject);document.getElementById('taskList').prepend(card);
+}
 async function refreshTasks(){
  const list=document.getElementById('taskList'),status=document.getElementById('taskStatus');list.innerHTML='';
  try{const tasks=await window.converge.listTasks();status.textContent=tasks.length+' tarefa(s) guardada(s).';
  tasks.forEach(t=>{const card=document.createElement('article');card.className='task-item';const title=document.createElement('strong');title.textContent=t.title+' · '+t.status;const desc=document.createElement('p');desc.textContent=t.description;card.append(title,desc);
  t.steps.forEach(s=>{const line=document.createElement('div');line.className='task-step';const label=document.createElement('span');label.textContent=s.order+'. '+s.text+' ['+s.status+']';line.append(label);
- if(s.status==='pending'||s.status==='failed'){const start=document.createElement('button');start.className='secondary';start.textContent='Iniciar';start.onclick=async()=>{await window.converge.updateTaskStep(t.id,s.id,'running');refreshTasks();};line.append(start);}
- else if(s.status==='running'){const done=document.createElement('button');done.className='primary';done.textContent='Concluir';done.onclick=async()=>{await window.converge.updateTaskStep(t.id,s.id,'completed');refreshTasks();};line.append(done);}
+ if(s.status==='pending'||s.status==='failed'){const run=document.createElement('button');run.className='primary';run.textContent='Executar com IA';run.onclick=async()=>{run.disabled=true;status.textContent='CONVERGE a executar etapa…';try{const out=await window.converge.runTaskStep(t.id,s.id,model.value);if(out.status==='awaiting_approval'){showTaskApproval(out.pending,t.id,s.id);}else{status.textContent='Etapa concluída pela IA.';refreshTasks();}}catch(err){status.textContent='Erro na execução: '+err.message;run.disabled=false;}};line.append(run);}
+ else if(s.status==='running'){const done=document.createElement('button');done.className='primary';done.textContent='Concluir manualmente';done.onclick=async()=>{await window.converge.updateTaskStep(t.id,s.id,'completed');refreshTasks();};line.append(done);}
+ if(s.result){const result=document.createElement('p');result.className='muted';result.textContent='Resultado: '+s.result;line.append(result);}
  card.append(line);});
- if(!['completed','cancelled'].includes(t.status)){const cancel=document.createElement('button');cancel.className='secondary';cancel.textContent='Cancelar tarefa';cancel.onclick=async()=>{await window.converge.cancelTask(t.id);refreshTasks();};card.append(cancel);}
  list.appendChild(card);});
  }catch(e){status.textContent='Erro ao carregar: '+e.message;}
 }
