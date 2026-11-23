@@ -88,7 +88,7 @@ function createStore(filePath) {
   }
   function tokenize(s) {
     const ignored = new Set('a o os as um uma uns umas de do da dos das e em no na nos nas para por com sem que se ao aos eu tu ele ela nos voces voce meu minha meus minhas teu sua suas isto isso aqui ali como mais menos muito muita pouco pode podem deve devem sobre entre ate ja nao sim'.split(' '));
-    return String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().match(/[a-z0-9]{3,}/g)?.filter(t => !ignored.has(t)) || [];
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().match(/[a-z0-9]{3,}/g)?.filter(t => !ignored.has(t)) || [];
   }
   function exportData() { load(); return snapshot(data); }
   return { listWorkspaces, createWorkspace, listMemories, searchMemories, saveMemory, deleteMemory, exportData };
