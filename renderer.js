@@ -15,8 +15,9 @@ form.addEventListener('submit',async e=>{
   const c=active();c.messages.push({role:'user',content:text});addMessage('user',text);
   const wait=addMessage('assistant','A pensar…');
   try{
-    const answer=await window.converge.send(c.messages,model.value,{webSearch:document.getElementById('webSearch').checked});
-    wait.textContent=answer;c.messages.push({role:'assistant',content:answer});persist();
+    const result=await window.converge.send(c.messages,model.value,{webSearch:document.getElementById('webSearch').checked,workspaceId:activeWorkspace.value});
+    const answer=typeof result==='string'?result:result.answer;
+    wait.textContent=answer+(result.memoryCount?'\n\n✧ Contexto aplicado: '+result.memoryCount+' memória(s) relevante(s) do projeto ativo.':'');c.messages.push({role:'assistant',content:answer});persist();
   }catch(err){
     wait.textContent='Erro: '+err.message;
     if(err.message.includes('chave API OpenAI ainda não foi configurada')){document.getElementById('settings').classList.remove('hidden');document.getElementById('apiKey').focus();}
@@ -69,10 +70,10 @@ async function refreshMemory(){
     status.textContent=memories.length+' memória(s) neste espaço.';
   }catch(e){status.textContent='Erro: '+e.message;}
 }
-workspaceSelect.addEventListener('change',refreshMemory);
+workspaceSelect.addEventListener('change',()=>{activeWorkspace.value=workspaceSelect.value;localStorage.setItem('converge-active-workspace',activeWorkspace.value);refreshMemory();});
 document.getElementById('createWorkspace').onclick=async()=>{
   const field=document.getElementById('workspaceName');
-  try{await window.converge.createWorkspace({name:field.value});field.value='';await loadWorkspaces();workspaceSelect.value=activeWorkspace.value;await refreshMemory();document.getElementById('memoryStatus').textContent='Projeto criado.';}
+  try{const created=await window.converge.createWorkspace({name:field.value});field.value='';await loadWorkspaces();activeWorkspace.value=created.id;localStorage.setItem('converge-active-workspace',created.id);workspaceSelect.value=created.id;await refreshMemory();document.getElementById('memoryStatus').textContent='Projeto criado.';}
   catch(e){document.getElementById('memoryStatus').textContent='Erro: '+e.message;}
 };
 document.getElementById('saveMemory').onclick=async()=>{
