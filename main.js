@@ -1,13 +1,15 @@
 const {app,BrowserWindow,ipcMain,safeStorage}=require('electron');
 const path=require('path');
 const fs=require('fs');
+const {createStore}=require('./src/store');
+let store;
 let win;
 const keyFile=()=>path.join(app.getPath('userData'),'api-key.enc');
 function createWindow(){
   win=new BrowserWindow({width:1080,height:760,minWidth:720,minHeight:560,backgroundColor:'#10151c',webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   win.loadFile('index.html');
 }
-app.whenReady().then(createWindow);
+app.whenReady().then(()=>{store=createStore(path.join(app.getPath('userData'),'converge-data.json'));store.listWorkspaces();createWindow();});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 ipcMain.handle('key:save',async(_,key)=>{
@@ -65,3 +67,10 @@ ipcMain.handle('chat:send',async(_, {messages,model,webSearch})=>{
   if(!answer)throw new Error('A OpenAI devolveu uma resposta vazia.');
   return context.length?answer+'\n\nFontes consultadas:\n'+context.map((r,i)=>'['+(i+1)+'] '+r.title+' — '+r.url).join('\n'):answer;
 });
+// CONVERGE local-first workspace and explicit user-controlled memory.
+ipcMain.handle('workspace:list',()=>store.listWorkspaces());
+ipcMain.handle('workspace:create',(_,input)=>store.createWorkspace(input));
+ipcMain.handle('memory:list',(_,workspaceId)=>store.listMemories(workspaceId));
+ipcMain.handle('memory:save',(_,input)=>store.saveMemory(input));
+ipcMain.handle('memory:delete',(_,id)=>store.deleteMemory(id));
+ipcMain.handle('data:export',()=>store.exportData());
