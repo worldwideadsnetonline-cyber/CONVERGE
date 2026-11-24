@@ -2,6 +2,7 @@ name: Build Windows installer
 on:
   workflow_dispatch:
   push:
+    branches: ["converge-dj-studio"]
     tags: ["dj-v*"]
 permissions:
   contents: read
