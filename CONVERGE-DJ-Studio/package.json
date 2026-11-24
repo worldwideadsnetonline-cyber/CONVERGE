@@ -1,6 +1,6 @@
 {
   "name":"converge-dj-studio",
-  "version":"0.1.0",
+  "version":"0.2.0",
   "description":"Four-deck DJ workstation for Windows",
   "main":"src/main.js",
   "scripts":{"start":"electron .","dist:win":"electron-builder --win nsis"},
