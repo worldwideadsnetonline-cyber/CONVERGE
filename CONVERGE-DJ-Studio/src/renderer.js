@@ -13,14 +13,14 @@ function ensureAudio(){
  master.connect(masterAnalyser);masterAnalyser.connect(audioCtx.destination);masterAnalyser.connect(mediaDest);
  decks.forEach((d)=>connectDeck(d));
 }
-function crossfaderGain(index,x){x=Math.max(0,Math.min(1,x));return index<2?Math.cos(x*Math.PI/2):Math.sin(x*Math.PI/2)}
+function crossfaderGain(d,x){x=Math.max(0,Math.min(1,x));return d.crossSide==='A'?Math.cos(x*Math.PI/2):Math.sin(x*Math.PI/2)}
 function connectDeck(d){
  if(d.connected||!audioCtx)return;
  d.source=audioCtx.createMediaElementSource(d.audio);
  d.gain=audioCtx.createGain();d.low=audioCtx.createBiquadFilter();d.low.type='lowshelf';d.low.frequency.value=250;
  d.mid=audioCtx.createBiquadFilter();d.mid.type='peaking';d.mid.frequency.value=1000;d.mid.Q.value=.8;
  d.high=audioCtx.createBiquadFilter();d.high.type='highshelf';d.high.frequency.value=5000;
- d.channelGain=audioCtx.createGain();d.channelGain.gain.value=crossfaderGain(d.index,Number($('#crossfader')?.value??.5));d.analyser=audioCtx.createAnalyser();d.analyser.fftSize=1024;
+ d.channelGain=audioCtx.createGain();d.channelGain.gain.value=crossfaderGain(d,Number($('#crossfader')?.value??.5));d.analyser=audioCtx.createAnalyser();d.analyser.fftSize=1024;
  d.source.connect(d.low);d.low.connect(d.mid);d.mid.connect(d.high);d.high.connect(d.gain);d.gain.connect(d.channelGain);d.channelGain.connect(d.analyser);d.analyser.connect(master);
  d.connected=true;
 }
@@ -33,7 +33,7 @@ function deckMarkup(i){return `<article class="deck" style="--deck:${colors[i]}"
   <div class="control"><label>GAIN <strong id="gainVal${i}">0 dB</strong></label><input data-param="gain" data-i="${i}" type="range" min="0" max="1.5" step=".01" value="1"></div>
   <div class="control"><label>TEMPO <strong id="tempoVal${i}">0%</strong></label><input data-param="tempo" data-i="${i}" type="range" min="-16" max="16" step=".1" value="0"></div>
   <div class="control"><label>LOOP <strong>BEATS</strong></label><select data-param="loop" data-i="${i}"><option value="0">OFF</option><option value="1">1</option><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></div>
-  <div class="control"><label>POSITION <strong id="posVal${i}">0%</strong></label><input data-param="position" data-i="${i}" type="range" min="0" max="100" value="0"></div>
+  <div class="control"><label>POSITION <strong id="posVal${i}">0%</strong></label><input data-param="position" data-i="${i}" type="range" min="0" max="100" value="0"></div><div class="control"><label>CROSSFADER SIDE <strong>A/B</strong></label><select data-param="crossSide" data-i="${i}"><option value="A" ${i<2?"selected":""}>A · LEFT</option><option value="B" ${i>=2?"selected":""}>B · RIGHT</option></select></div>
  </div>
  <div class="cue-row">${[1,2,3,4].map(n=>`<button data-action="hotcue" data-i="${i}" data-cue="${n}">HOT CUE ${n}</button>`).join('')}</div>
  </article>`}
@@ -42,7 +42,7 @@ function mixerMarkup(){return decks.map((d,i)=>`<div class="channel" style="--ch
  </div>`).join('')}
 function init(){
  $('#decks').innerHTML=Array.from({length:4},(_,i)=>deckMarkup(i)).join('');
- for(let i=0;i<4;i++){const audio=new Audio();audio.preload='metadata';const d={audio,index:i,hotcues:{},cuePoint:0,loop:0,connected:false,bpm:null,wavePeaks:null};decks.push(d);
+ for(let i=0;i<4;i++){const audio=new Audio();audio.preload='metadata';const d={audio,index:i,hotcues:{},cuePoint:0,loop:0,crossSide:i<2?'A':'B',connected:false,bpm:null,wavePeaks:null};decks.push(d);
   audio.addEventListener('timeupdate',()=>updateDeck(d));audio.addEventListener('loadedmetadata',()=>updateDeck(d));audio.addEventListener('ended',()=>{$(`#state${i}`).textContent='PLAYBACK ENDED';});
  }
  $('#mixer').innerHTML=mixerMarkup();
@@ -52,10 +52,10 @@ function init(){
   if(p==='gain'){d.gain.gain.value=+el.value;$(`#gainVal${d.index}`).textContent=(20*Math.log10(Math.max(.001,+el.value))).toFixed(1)+' dB'}
   if(p==='tempo'){d.audio.playbackRate=1+(+el.value/100);$(`#tempoVal${d.index}`).textContent=(+el.value).toFixed(1)+'%'}
   if(p==='position'&&d.audio.duration){d.audio.currentTime=d.audio.duration*(+el.value/100)}
-  if(p==='loop'){d.loop=+el.value;d.loopStart=d.audio.currentTime||0;d.loopEnd=d.loop?d.loopStart+d.loop*(60/((d.bpm||128)*d.audio.playbackRate)):0;}
+  if(p==='loop'){d.loop=+el.value;d.loopStart=d.audio.currentTime||0;d.loopEnd=d.loop?d.loopStart+d.loop*(60/((d.bpm||128)*d.audio.playbackRate)):0;toast(d.loop?`Loop ${d.loop} beat(s) armed`:'Loop disabled')}if(p==='crossSide'){d.crossSide=el.value;if(d.channelGain)d.channelGain.gain.value=crossfaderGain(d,Number($('#crossfader').value));toast(`Deck ${d.index+1} assigned to crossfader ${d.crossSide}`)}
  });
  $('#masterVol').addEventListener('input',e=>{ensureAudio();master.gain.value=+e.target.value;$('#masterReadout').textContent=(+e.target.value===0?'−∞':(20*Math.log10(+e.target.value)).toFixed(1))+' dB'});
- $('#crossfader').addEventListener('input',e=>{ensureAudio();const x=+e.target.value;decks.forEach(d=>{if(d.channelGain)d.channelGain.gain.value=crossfaderGain(d.index,x)})});
+ $('#crossfader').addEventListener('input',e=>{ensureAudio();const x=+e.target.value;decks.forEach(d=>{if(d.channelGain)d.channelGain.gain.value=crossfaderGain(d,x)})});
  $('#addTrack').onclick=chooseTrack;$('#recordBtn').onclick=toggleRecord;$('#midiBtn').onclick=setupMidi;
  restoreLibrary();drawLoop();
 }
