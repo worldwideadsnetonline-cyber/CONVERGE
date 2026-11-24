@@ -13,3 +13,5 @@ input[type=range]{accent-color:var(--cyan);width:100%;cursor:pointer}
 .remove-track:hover{border-color:#ad5d68;background:#39232a}
 
 .deck-controls select{width:100%;background:#101b26;color:var(--text);border:1px solid var(--line);border-radius:5px;padding:5px;font-size:10px}
+
+.limiter-state{display:block;color:var(--green);font:8px 'DM Mono';letter-spacing:.1em;margin-top:4px}
