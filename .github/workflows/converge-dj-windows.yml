@@ -19,6 +19,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - run: node --check src/main.js
+      - run: node --check src/preload.js
+      - run: node --check src/renderer.js
       - run: npm install
       - run: npm run dist:win
       - uses: actions/upload-artifact@v4
