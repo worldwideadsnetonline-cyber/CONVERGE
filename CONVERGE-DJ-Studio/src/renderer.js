@@ -54,6 +54,7 @@ function init(){
   if(p==='tempo'){d.audio.playbackRate=1+(+el.value/100);$(`#tempoVal${d.index}`).textContent=(+el.value).toFixed(1)+'%'}
   if(p==='position'&&d.audio.duration){d.audio.currentTime=d.audio.duration*(+el.value/100)}
   if(p==='loop'){d.loop=+el.value;d.loopStart=d.audio.currentTime||0;d.loopEnd=d.loop?d.loopStart+d.loop*(60/((d.bpm||128)*d.audio.playbackRate)):0;toast(d.loop?`Loop ${d.loop} beat(s) armed`:'Loop disabled')}if(p==='crossSide'){d.crossSide=el.value;if(d.channelGain)d.channelGain.gain.value=crossfaderGain(d,Number($('#crossfader').value));toast(`Deck ${d.index+1} assigned to crossfader ${d.crossSide}`)}
+ }
  });
  $('#masterVol').addEventListener('input',e=>{ensureAudio();master.gain.value=+e.target.value;$('#masterReadout').textContent=(+e.target.value===0?'−∞':(20*Math.log10(+e.target.value)).toFixed(1))+' dB'});
  $('#crossfader').addEventListener('input',e=>{ensureAudio();const x=+e.target.value;decks.forEach(d=>{if(d.channelGain)d.channelGain.gain.value=crossfaderGain(d,x)})});
