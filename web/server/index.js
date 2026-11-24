@@ -16,8 +16,13 @@ const limits=new Map();
 app.disable('x-powered-by');
 app.use((req,res,next)=>{res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:");next()});
 app.use(express.json({limit:'1mb'}));app.use(express.static(path.join(__dirname,'..','public')));
-function readStore(){try{const d=JSON.parse(fs.readFileSync(DATA_FILE,'utf8'));d.projects||=[{id:'default',name:'Workspace',memories:[],tasks:[]}];d.conversations||=[];return d}catch{return{projects:[{id:'default',name:'Workspace',memories:[],tasks:[]}],conversations:[]}}}
-function writeStore(d){fs.mkdirSync(DATA_DIR,{recursive:true});const tmp=DATA_FILE+'.tmp';fs.writeFileSync(tmp,JSON.stringify(d,null,2));fs.renameSync(tmp,DATA_FILE)}
+const DATABASE_URL=process.env.DATABASE_URL||'';
+let storeCache=null,dbPool=null,writeQueue=Promise.resolve();
+function emptyStore(){return{projects:[{id:'default',name:'Workspace',memories:[],tasks:[]}],conversations:[]}}
+function readFileStore(){try{const d=JSON.parse(fs.readFileSync(DATA_FILE,'utf8'));d.projects||=[{id:'default',name:'Workspace',memories:[],tasks:[]}];d.conversations||=[];return d}catch{return emptyStore()}}
+function readStore(){if(!storeCache)storeCache=readFileStore();return storeCache}
+function writeStore(d){storeCache=d;fs.mkdirSync(DATA_DIR,{recursive:true});const tmp=DATA_FILE+'.tmp';fs.writeFileSync(tmp,JSON.stringify(d,null,2));fs.renameSync(tmp,DATA_FILE);if(dbPool){const snapshot=JSON.stringify(d);writeQueue=writeQueue.then(()=>dbPool.query('INSERT INTO converge_workspace (id, data, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()',['primary',snapshot])).catch(err=>{console.error('Postgres persistence write failed:',err.message);throw err});writeQueue.catch(()=>{})}}
+async function initializePersistence(){if(!DATABASE_URL){storeCache=readFileStore();console.warn('DATABASE_URL not set; using local ephemeral file storage.');return}const {Pool}=require('pg');dbPool=new Pool({connectionString:DATABASE_URL,ssl:{rejectUnauthorized:false},max:5,idleTimeoutMillis:30000,connectionTimeoutMillis:10000});await dbPool.query('CREATE TABLE IF NOT EXISTS converge_workspace (id TEXT PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');const result=await dbPool.query("SELECT data FROM converge_workspace WHERE id = 'primary'");if(result.rows.length){storeCache=result.rows[0].data;storeCache.projects||=[{id:'default',name:'Workspace',memories:[],tasks:[]}];storeCache.conversations||=[]}else{storeCache=readFileStore();await dbPool.query('INSERT INTO converge_workspace (id,data,updated_at) VALUES ($1,$2::jsonb,NOW())',['primary',JSON.stringify(storeCache)])}console.log('PostgreSQL persistence ready; workspace loaded.')}
 function key(req){return req.headers['x-openai-api-key']||API_KEY}
 function aiKey(req,res){const k=key(req);if(!k){res.status(503).json({error:'Adicione a sua chave OpenAI em Configurações para ativar o CONVERGE.'});return null}return k}
 function rateLimit(req,res,next){const ip=req.ip||'unknown',now=Date.now(),b=limits.get(ip)||{start:now,n:0};if(now-b.start>60000){b.start=now;b.n=0}b.n++;limits.set(ip,b);if(b.n>90)return res.status(429).json({error:'Limite de pedidos por minuto atingido. Aguarde e tente novamente.'});next()}
@@ -53,4 +58,4 @@ app.get('/api/bridge/commands/next',bridgeAuth,(req,res)=>{const pending=bridgeC
 app.post('/api/bridge/commands/:id/ack',bridgeAuth,(req,res)=>{const item=bridgeCommands.find(c=>c.id===req.params.id);if(!item)return res.status(404).json({error:'Command not found'});item.status=String(req.body?.status||'completed');item.result=String(req.body?.result||'').slice(0,5000);item.acknowledgedAt=new Date().toISOString();res.json({ok:true})});
 app.get('/api/bridge/commands',bridgeAuth,(req,res)=>res.json(bridgeCommands.slice(-50)));
 
-app.listen(PORT,()=>console.log('CONVERGE Web listening on '+PORT));
+initializePersistence().then(()=>{app.listen(PORT,()=>console.log('CONVERGE Web listening on '+PORT))}).catch(err=>{console.error('Persistence initialization failed; refusing to start without database:',err);process.exit(1)});
