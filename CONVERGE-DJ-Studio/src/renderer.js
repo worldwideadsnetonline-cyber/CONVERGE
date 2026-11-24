@@ -41,7 +41,7 @@ function mixerMarkup(){return decks.map((d,i)=>`<div class="channel" style="--ch
  </div>`).join('')}
 function init(){
  $('#decks').innerHTML=Array.from({length:4},(_,i)=>deckMarkup(i)).join('');
- for(let i=0;i<4;i++){const audio=new Audio();audio.preload='metadata';const d={audio,index:i,hotcues:{},loop:0,connected:false};decks.push(d);
+ for(let i=0;i<4;i++){const audio=new Audio();audio.preload='metadata';const d={audio,index:i,hotcues:{},cuePoint:0,loop:0,connected:false,bpm:null,wavePeaks:null};decks.push(d);
   audio.addEventListener('timeupdate',()=>updateDeck(d));audio.addEventListener('loadedmetadata',()=>updateDeck(d));audio.addEventListener('ended',()=>{$(`#state${i}`).textContent='PLAYBACK ENDED';});
  }
  $('#mixer').innerHTML=mixerMarkup();
@@ -56,19 +56,23 @@ function init(){
  $('#masterVol').addEventListener('input',e=>{ensureAudio();master.gain.value=+e.target.value;$('#masterReadout').textContent=(+e.target.value===0?'−∞':(20*Math.log10(+e.target.value)).toFixed(1))+' dB'});
  $('#crossfader').addEventListener('input',e=>{ensureAudio();const x=+e.target.value;decks.forEach((d,i)=>{if(d.channelGain)d.channelGain.gain.value=i<2?Math.cos(x*Math.PI/2):Math.cos((1-x)*Math.PI/2)})});
  $('#addTrack').onclick=chooseTrack;$('#recordBtn').onclick=toggleRecord;$('#midiBtn').onclick=setupMidi;
- drawLoop();
+ restoreLibrary();drawLoop();
 }
 async function chooseTrack(){const p=await window.djHost.chooseAudio();if(p)addTrack(p)}
-function addTrack(path){const url=window.djHost.toFileUrl(path);const track={path,url,name:path.split(/[\\/]/).pop()};tracks.push(track);renderTracks();toast('Track added to library')}
+function addTrack(path){if(tracks.some(t=>t.path===path)){toast('Track already in library');return}const url=window.djHost.toFileUrl(path);const track={path,url,name:path.split(/[\\/]/).pop()};tracks.push(track);persistLibrary();renderTracks();toast('Track added · analyzing…');analyzeTrack(track)}
+function persistLibrary(){try{localStorage.setItem('convergeDjLibrary',JSON.stringify(tracks.map(t=>({path:t.path,name:t.name}))))}catch(e){toast('Library storage limit reached')}}
+function restoreLibrary(){try{const saved=JSON.parse(localStorage.getItem('convergeDjLibrary')||'[]');saved.forEach(t=>{if(t&&typeof t.path==='string'&&!tracks.some(x=>x.path===t.path)){const track={path:t.path,url:window.djHost.toFileUrl(t.path),name:t.name||t.path.split(/[\\/]/).pop()};tracks.push(track);analyzeTrack(track)}});renderTracks()}catch(e){console.warn('Library restore skipped',e)}}
+async function analyzeTrack(t){try{if(!audioCtx)audioCtx=new AudioContext();const raw=await window.djHost.readAudio(t.path);const buffer=await audioCtx.decodeAudioData(raw.slice(0));const data=buffer.getChannelData(0),peaks=[],bins=1200,chunk=Math.max(1,Math.floor(data.length/bins));for(let n=0;n<bins;n++){let peak=0;for(let j=n*chunk;j<Math.min(data.length,(n+1)*chunk);j++)peak=Math.max(peak,Math.abs(data[j]));peaks.push(peak)}t.wavePeaks=peaks;t.bpm=estimateBpm(buffer);t.duration=buffer.duration;decks.forEach(d=>{if(d.track===t){d.wavePeaks=peaks;d.bpm=t.bpm;$('#bpm'+d.index).textContent=t.bpm?t.bpm.toFixed(1):'--.-';drawWave(d)}});persistLibrary()}catch(e){console.warn('Track analysis failed:',e);toast('Audio analysis unavailable for '+t.name)}}
+function estimateBpm(buffer){const sr=buffer.sampleRate,channel=buffer.getChannelData(0),hop=1024,env=[];for(let p=0;p<channel.length;p+=hop){let sum=0,end=Math.min(channel.length,p+hop);for(let j=p;j<end;j++)sum+=channel[j]*channel[j];env.push(Math.sqrt(sum/Math.max(1,end-p)))}const onset=env.map((v,i)=>Math.max(0,v-(env[i-1]||0))),minLag=Math.floor(60*sr/(hop*180)),maxLag=Math.floor(60*sr/(hop*65));let lagBest=0,scoreBest=-Infinity;for(let lag=minLag;lag<=maxLag&&lag<onset.length/2;lag++){let score=0;for(let i=lag;i<onset.length;i++)score+=onset[i]*onset[i-lag];if(score>scoreBest){scoreBest=score;lagBest=lag}}if(!lagBest)return null;let bpm=60*sr/(hop*lagBest);while(bpm<80)bpm*=2;while(bpm>170)bpm/=2;return Math.round(bpm*10)/10}
 function renderTracks(){$('#trackList').innerHTML=tracks.length?tracks.map((t,n)=>`<div class="track-row"><span class="track-name" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</span><span class="track-format">${t.name.split('.').pop().toUpperCase()}</span><span class="load-buttons">${[0,1,2,3].map(i=>`<button data-load="${n}" data-i="${i}">DECK ${i+1}</button>`).join('')}</span></div>`).join(''):'<div class="empty">Your music collection will appear here. Add audio files to begin.</div>'}
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 $('#trackList').addEventListener('click',e=>{const b=e.target.closest('button[data-load]');if(b)loadTrack(+b.dataset.i,tracks[+b.dataset.load])});
-function loadTrack(i,t){if(!t)return;const d=decks[i];d.audio.src=t.url;d.audio.load();d.hotcues={};$(`#title${i}`).textContent=t.name;$(`#state${i}`).textContent='LOADED · PAUSED';toast(`Loaded on Deck ${i+1}`);ensureAudio();drawWave(d)}
+function loadTrack(i,t){if(!t)return;const d=decks[i];d.track=t;d.audio.src=t.url;d.audio.load();d.hotcues={};d.cuePoint=0;d.bpm=t.bpm||null;d.wavePeaks=t.wavePeaks||null;$(`#title${i}`).textContent=t.name;$(`#state${i}`).textContent='LOADED · PAUSED';$('#bpm'+i).textContent=d.bpm?d.bpm.toFixed(1):'--.-';toast(`Loaded on Deck ${i+1}`);ensureAudio();drawWave(d)}
 function action(a,i,cue){const d=decks[i];ensureAudio();audioCtx.resume();
  if(a==='load'){chooseTrack().then(()=>{if(tracks.length)loadTrack(i,tracks[tracks.length-1])});return}
  if(a==='play'){if(d.audio.paused){d.audio.play().then(()=>$(`#state${i}`).textContent='PLAYING').catch(()=>toast('Load an audio track first'))}else{d.audio.pause();$(`#state${i}`).textContent='PAUSED'}}
  if(a==='stop'){d.audio.pause();d.audio.currentTime=0;$(`#state${i}`).textContent='STOPPED'}
- if(a==='cue'){if(d.audio.currentTime>0.08){d.audio.pause();d.audio.currentTime=0}else toast('Cue point: start of track')}
+ if(a==='cue'){if(!d.audio.paused){d.cuePoint=d.audio.currentTime;d.audio.pause();toast('Cue point saved at '+fmt(d.cuePoint))}else if(d.audio.src){d.audio.currentTime=d.cuePoint||0;d.audio.play().then(()=>setTimeout(()=>{d.audio.pause();$('#state'+i).textContent='CUE PREVIEW'},350)).catch(()=>toast('Load a track first'))}else toast('Load a track first')}
  if(a==='sync'){const other=decks.find(x=>x!==d&&!x.audio.paused&&x.bpm&&d.bpm);if(other){const rate=Math.max(.84,Math.min(1.16,(other.bpm*other.audio.playbackRate)/d.bpm));d.audio.playbackRate=rate;$(`[data-param="tempo"][data-i="${i}"]`).value=((rate-1)*100).toFixed(1);$ (`#tempoVal${i}`).textContent=((rate-1)*100).toFixed(1)+'%';toast(`Tempo matched: ${(d.bpm*rate).toFixed(1)} BPM`)}else toast('Load two tracks with detected BPM and start the reference deck')}
  if(a==='hotcue'){if(d.hotcues[cue]!==undefined){d.audio.currentTime=d.hotcues[cue]}else{d.hotcues[cue]=d.audio.currentTime;toast(`Hot Cue ${cue} saved`)}}
 }
