@@ -69,13 +69,21 @@ function action(a,i,cue){const d=decks[i];ensureAudio();audioCtx.resume();
  if(a==='play'){if(d.audio.paused){d.audio.play().then(()=>$(`#state${i}`).textContent='PLAYING').catch(()=>toast('Load an audio track first'))}else{d.audio.pause();$(`#state${i}`).textContent='PAUSED'}}
  if(a==='stop'){d.audio.pause();d.audio.currentTime=0;$(`#state${i}`).textContent='STOPPED'}
  if(a==='cue'){if(d.audio.currentTime>0.08){d.audio.pause();d.audio.currentTime=0}else toast('Cue point: start of track')}
- if(a==='sync'){const other=decks.find(x=>x!==d&& !x.audio.paused);if(other){d.audio.playbackRate=other.audio.playbackRate;$(`#tempoVal${i}`).textContent=((d.audio.playbackRate-1)*100).toFixed(1)+'%'}else toast('Start another deck to sync')}
+ if(a==='sync'){const other=decks.find(x=>x!==d&&!x.audio.paused&&x.bpm&&d.bpm);if(other){const rate=Math.max(.84,Math.min(1.16,other.bpm/d.bpm));d.audio.playbackRate=rate;$(`[data-param="tempo"][data-i="${i}"]`).value=((rate-1)*100).toFixed(1);$ (`#tempoVal${i}`).textContent=((rate-1)*100).toFixed(1)+'%';toast(`Tempo matched: ${(d.bpm*rate).toFixed(1)} BPM`)}else toast('Load two tracks with detected BPM and start the reference deck')}
  if(a==='hotcue'){if(d.hotcues[cue]!==undefined){d.audio.currentTime=d.hotcues[cue]}else{d.hotcues[cue]=d.audio.currentTime;toast(`Hot Cue ${cue} saved`)}}
 }
 function updateDeck(d){const i=d.index,dur=d.audio.duration||0,cur=d.audio.currentTime||0;$(`#time${i}`).textContent=`${fmt(cur)} / ${fmt(dur)}`;$(`#posVal${i}`).textContent=(dur?cur/dur*100:0).toFixed(0)+'%';const pos=$(`[data-param="position"][data-i="${i}"]`);if(pos&&dur)pos.value=cur/dur*100;
  if(d.loop&&dur){const beats=d.loop*(60/128);if(cur>=d.loopStart+beats||(!d.loopStart&&cur>=beats)){d.loopStart=d.loopStart||cur-beats;d.audio.currentTime=d.loopStart}}
 }
-function drawWave(d){const canvas=$(`#wave${d.index}`),ctx=canvas.getContext('2d');canvas.width=canvas.clientWidth*2;canvas.height=canvas.clientHeight*2;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.strokeStyle=colors[d.index];ctx.globalAlpha=.8;ctx.beginPath();for(let x=0;x<canvas.width;x++){const y=canvas.height/2+Math.sin(x*.07+d.index)*Math.sin(x*.013)*canvas.height*.32;ctx.lineTo(x,y)}ctx.stroke()}
+function drawWave(d){
+ const canvas=$(`#wave${d.index}`),ctx=canvas.getContext('2d');canvas.width=Math.max(1,canvas.clientWidth*2);canvas.height=Math.max(1,canvas.clientHeight*2);
+ const w=canvas.width,h=canvas.height,mid=h/2;ctx.clearRect(0,0,w,h);ctx.fillStyle='#09111a';ctx.fillRect(0,0,w,h);
+ ctx.strokeStyle=colors[d.index];ctx.globalAlpha=.88;ctx.lineWidth=1;ctx.beginPath();
+ if(d.wavePeaks){for(let x=0;x<w;x++){const peak=d.wavePeaks[Math.min(d.wavePeaks.length-1,Math.floor(x/w*d.wavePeaks.length))]||0;ctx.moveTo(x,mid-peak*mid*.94);ctx.lineTo(x,mid+peak*mid*.94)}}
+ else {for(let x=0;x<w;x++){const y=mid+Math.sin(x*.07+d.index)*Math.sin(x*.013)*h*.32;ctx.lineTo(x,y)}}
+ ctx.stroke();ctx.globalAlpha=1;
+}
+
 function drawLoop(){decks.forEach(d=>{const c=$(`#wave${d.index}`);if(!c.width||c.width!==c.clientWidth*2)drawWave(d)});const c=$('#masterScope'),ctx=c.getContext('2d');c.width=c.clientWidth*2;c.height=c.clientHeight*2;let data=masterAnalyser?new Uint8Array(masterAnalyser.frequencyBinCount):null;ctx.clearRect(0,0,c.width,c.height);ctx.strokeStyle='#35d5df';ctx.beginPath();for(let x=0;x<c.width;x++){let v=data?data[Math.floor(x/c.width*data.length)]/255:0.5+Math.sin(x*.03)*.15;let y=c.height*(.5-v*.7);x?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();requestAnimationFrame(drawLoop)}
 async function toggleRecord(){ensureAudio();if(!recorder||recorder.state==='inactive'){chunks=[];recorder=new MediaRecorder(mediaDest.stream);recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=()=>{const blob=new Blob(chunks,{type:'audio/webm'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`CONVERGE-DJ-Set-${Date.now()}.webm`;a.click();URL.revokeObjectURL(url);toast('Recording saved to Downloads')};recorder.start();$('#recordBtn').textContent='■ STOP RECORD';$('#recordBtn').style.color='#fff'}else{recorder.stop();$('#recordBtn').textContent='● RECORD';$('#recordBtn').style.color='#ff7777'}}
 async function setupMidi(){if(!navigator.requestMIDIAccess){toast('MIDI API not available in this runtime');return}try{const access=await navigator.requestMIDIAccess();const inputs=[...access.inputs.values()];if(!inputs.length){toast('No MIDI controller detected. Connect one and retry.');return}inputs.forEach(input=>input.onmidimessage=handleMidi);toast(`MIDI connected: ${inputs.map(x=>x.name).join(', ')}`)}catch(e){toast('MIDI access denied by system')}}
