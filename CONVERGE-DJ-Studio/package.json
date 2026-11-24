@@ -1,9 +1,42 @@
 {
-  "name":"converge-dj-studio",
-  "version":"0.2.0",
-  "description":"Four-deck DJ workstation for Windows",
-  "main":"src/main.js",
-  "scripts":{"start":"electron .","dist:win":"electron-builder --win nsis"},
-  "devDependencies":{"electron":"^34.3.0","electron-builder":"^26.0.12"},
-  "build":{"appId":"com.converge.djstudio","productName":"CONVERGE DJ Studio","directories":{"output":"dist"},"files":["src/**/*","package.json"],"win":{"target":[{"target":"nsis","arch":["x64"]}],"artifactName":"CONVERGE-DJ-Studio-Setup-${version}.${ext}"},"nsis":{"oneClick":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true}}
+  "name": "converge-dj-studio",
+  "version": "0.3.0",
+  "description": "Four-deck DJ workstation with audio analysis, waveform, cues, loops, mixer and MIDI support",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^34.3.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.converge.djstudio",
+    "productName": "CONVERGE DJ Studio",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "CONVERGE-DJ-Studio-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
 }
