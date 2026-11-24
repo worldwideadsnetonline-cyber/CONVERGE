@@ -1,5 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('node:path');
+const fs = require('node:fs/promises');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -16,6 +17,10 @@ function createWindow() {
   win.loadFile(path.join(__dirname, 'index.html'));
 }
 app.whenReady().then(() => {
+  ipcMain.handle('audio:read', async (_event, filePath) => {
+    const data = await fs.readFile(filePath);
+    return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  });
   ipcMain.handle('dialog:audio', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
