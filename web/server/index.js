@@ -5,6 +5,12 @@ const crypto=require('crypto');
 const app=express();
 const PORT=Number(process.env.PORT||3000);
 const API_KEY=process.env.OPENAI_API_KEY||'';
+const ACCESS_PASSWORD=process.env.CONVERGE_ACCESS_PASSWORD||'',SESSION_SECRET=process.CONVERGE_SESSION_SECRET||'',SESSION_TTL=86400000;
+function signSession(payload){return crypto.createHmac('sha256',SESSION_SECRET).update(payload).digest('base64url')}
+function cookieToken(req){const entry=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('converge_session='));return entry?entry.substring('converge_session='.length):''}
+function sessionValid(req){if(!SESSION_SECRET)return false;const t=cookieToken(req).split('.');if(t.length!==2)return false;const [payload,sig]=t,expected=signSession(payload);if(sig.length!==expected.length||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(expected)))return false;const [ts,nonce]=payload.split(':');return !!nonce&&Number(ts)>Date.now()-SESSION_TTL&&Number(ts)<=Date.now()+30000}
+function sessionAuth(req,res,next){if(req.path.startsWith('/bridge/'))return next();if(sessionValid(req))return next();return res.status(401).json({error:'Sessão necessária. Entre no CONVERGE.'})}
+
 const DATA_DIR=path.join(__dirname,'data'),DATA_FILE=path.join(DATA_DIR,'workspace.json');
 const limits=new Map();
 app.disable('x-powered-by');
@@ -16,8 +22,11 @@ function key(req){return req.headers['x-openai-api-key']||API_KEY}
 function aiKey(req,res){const k=key(req);if(!k){res.status(503).json({error:'Adicione a sua chave OpenAI em Configurações para ativar o CONVERGE.'});return null}return k}
 function rateLimit(req,res,next){const ip=req.ip||'unknown',now=Date.now(),b=limits.get(ip)||{start:now,n:0};if(now-b.start>60000){b.start=now;b.n=0}b.n++;limits.set(ip,b);if(b.n>90)return res.status(429).json({error:'Limite de pedidos por minuto atingido. Aguarde e tente novamente.'});next()}
 app.use('/api',rateLimit);
-app.get('/api/health',(_req,res)=>res.json({ok:true,aiConfigured:Boolean(API_KEY),authConfigured:true,authenticated:true}));
-app.get('/api/auth/status',(_req,res)=>res.json({authenticated:true,authConfigured:true,aiConfigured:Boolean(API_KEY)}));
+app.get('/api/health',(_req,res)=>res.json({ok:true,aiConfigured:Boolean(API_KEY),authConfigured:Boolean(ACCESS_PASSWORD&&SESSION_SECRET)}));
+app.get('/api/auth/status',(req,res)=>res.json({authenticated:sessionValid(req),authConfigured:Boolean(ACCESS_PASSWORD&&SESSION_SECRET),aiConfigured:Boolean(API_KEY)}));
+app.post('/api/auth/login',(req,res)=>{const candidate=String(req.body?.password||''),expected=ACCESS_PASSWORD;if(!expected||!SESSION_SECRET)return res.status(503).json({error:'Autenticação não configurada no servidor.'});const a=Buffer.from(candidate),b=Buffer.from(expected);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:'Palavra-passe incorreta.'});const payload=Date.now()+':'+crypto.randomBytes(24).toString('base64url');const token=payload+'.'+signSession(payload);res.setHeader('Set-Cookie','converge_session='+token+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400');res.json({ok:true})});
+app.post('/api/auth/logout',(req,res)=>{res.setHeader('Set-Cookie','converge_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0');res.json({ok:true})});
+app.use('/api',sessionAuth);
 app.post('/api/ai/check',async(req,res)=>{const supplied=String(req.headers['x-openai-api-key']||'').trim();const k=supplied||API_KEY;if(!k)return res.status(400).json({valid:false,reason:'missing',error:'Nenhuma chave API foi recebida.'});try{const r=await fetch('https://api.openai.com/v1/models',{method:'GET',headers:{Authorization:'Bearer '+k}});if(r.ok)return res.json({valid:true,source:supplied?'browser':'server'});const d=await r.json().catch(()=>({}));const message=d?.error?.message||'A OpenAI rejeitou a chave.';return res.status(r.status).json({valid:false,reason:r.status===401?'invalid':'api_error',error:message})}catch(e){return res.status(502).json({valid:false,reason:'network',error:'Não foi possível validar a chave por falha de ligação à OpenAI.'})}});
 app.get('/api/projects',(_req,res)=>res.json(readStore().projects));
 app.post('/api/projects',(req,res)=>{const name=String(req.body?.name||'').trim();if(!name||name.length>80)return res.status(400).json({error:'O nome do projeto deve ter entre 1 e 80 caracteres.'});const d=readStore(),p={id:crypto.randomUUID(),name,memories:[],tasks:[]};d.projects.push(p);writeStore(d);res.status(201).json(p)});
