@@ -47,34 +47,19 @@ function init(){
   audio.addEventListener('timeupdate',()=>updateDeck(d));audio.addEventListener('loadedmetadata',()=>updateDeck(d));audio.addEventListener('ended',()=>{$(`#state${i}`).textContent='PLAYBACK ENDED';});
  }
  $('#mixer').innerHTML=mixerMarkup();
- $('#decks').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(!b)return;const i=+b.dataset.i;action(b.dataset.action,i,+b.dataset.cue)});$('#decks').addEventListener('contextmenu',e=>{const b=e.target.closest('button[data-action]');if(!b)return;e.preventDefault();learnTarget={type:'note',action:b.dataset.action,deck:+b.dataset.i,cue:+b.dataset.cue||0};toast(`MIDI NOTE LEARN · Deck ${learnTarget.deck+1} · ${learnTarget.action} · press a pad`)});document.addEventListener('contextmenu',e=>{const el=e.target.closest('input[type=range][data-param],input[type=range][data-eq],#crossfader,#masterVol');if(!el)return;e.preventDefault();learnTarget={type:'cc',selector:el.id||null,deck:el.dataset.i!==undefined?+el.dataset.i:null,param:el.dataset.param||el.dataset.eq||el.id};toast('MIDI CC LEARN · Move a knob or slider on your controller')});
- $('#mixer').addEventListener('input',e=>{const el=e.target;if(!el.dataset.eq)return;ensureAudio();const d=decks[+el.dataset.i];const node=d[el.dataset.eq];node.gain.value=+el.value;$(`#${el.dataset.eq}Knob${d.index}`).textContent=el.value});
-  $('#decks').addEventListener('input', e => {
-    const el = e.target;
-    if (!el.dataset.param) return;
-    const d = decks[+el.dataset.i], p = el.dataset.param;
-    ensureAudio();
-    if (p === 'gain') {
-      d.gain.gain.value = +el.value;
-      $('#gainVal' + d.index).textContent = (20 * Math.log10(Math.max(.001, +el.value))).toFixed(1) + ' dB';
-    }
-    if (p === 'tempo') {
-      d.audio.playbackRate = 1 + (+el.value / 100);
-      $('#tempoVal' + d.index).textContent = (+el.value).toFixed(1) + '%';
-    }
-    if (p === 'position' && d.audio.duration) d.audio.currentTime = d.audio.duration * (+el.value / 100);
-    if (p === 'loop') {
-      d.loop = +el.value;
-      d.loopStart = d.audio.currentTime || 0;
-      d.loopEnd = d.loop ? d.loopStart + d.loop * (60 / ((d.bpm || 128) * d.audio.playbackRate)) : 0;
-      toast(d.loop ? `Loop ${d.loop} beat(s) armed` : 'Loop disabled');
-    }
-    if (p === 'crossSide') {
-      d.crossSide = el.value;
-      if (d.channelGain) d.channelGain.gain.value = crossfaderGain(d, Number($('#crossfader').value));
-      toast(`Deck ${d.index + 1} assigned to crossfader ${d.crossSide}`);
-    }
-  });
+ $('#decks').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(!b)return;const i=+b.dataset.i;action(b.dataset.action,i,+b.dataset.cue)});
+ $('#decks').addEventListener('contextmenu',e=>{const b=e.target.closest('button[data-action]');if(!b)return;e.preventDefault();learnTarget={type:'note',action:b.dataset.action,deck:+b.dataset.i,cue:+b.dataset.cue||0};toast(`MIDI NOTE LEARN · Deck ${learnTarget.deck+1} · ${learnTarget.action} · press a pad`)});
+ document.addEventListener('contextmenu',e=>{const el=e.target.closest('input[type=range][data-param],input[type=range][data-eq],#crossfader,#masterVol');if(!el)return;e.preventDefault();learnTarget={type:'cc',selector:el.id||null,deck:el.dataset.i!==undefined?+el.dataset.i:null,param:el.dataset.param||el.dataset.eq||el.id};toast('MIDI CC LEARN · Move a knob or slider on your controller')});
+ $('#mixer').addEventListener('input',e=>{const el=e.target;if(!el.dataset.eq)return;ensureAudio();const d=decks[+el.dataset.i];const node=d[el.dataset.eq];if(node)node.gain.value=+el.value;$(`#${el.dataset.eq}Knob${d.index}`).textContent=el.value});
+ $('#decks').addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset.param)return;
+  const d=decks[+el.dataset.i],p=el.dataset.param;ensureAudio();
+  if(p==='gain'){d.gain.gain.value=+el.value;$(`#gainVal${d.index}`).textContent=(20*Math.log10(Math.max(.001,+el.value))).toFixed(1)+' dB'}
+  if(p==='tempo'){d.audio.playbackRate=1+(+el.value/100);$(`#tempoVal${d.index}`).textContent=(+el.value).toFixed(1)+'%'}
+  if(p==='position'&&d.audio.duration)d.audio.currentTime=d.audio.duration*(+el.value/100);
+  if(p==='loop'){d.loop=+el.value;d.loopStart=d.audio.currentTime||0;d.loopEnd=d.loop?d.loopStart+d.loop*(60/((d.bpm||128)*d.audio.playbackRate)):0;toast(d.loop?`Loop ${d.loop} beat(s) armed`:'Loop disabled')}
+  if(p==='crossSide'){d.crossSide=el.value;if(d.channelGain)d.channelGain.gain.value=crossfaderGain(d,Number($('#crossfader').value));toast(`Deck ${d.index+1} assigned to crossfader ${d.crossSide}`)}
+ });
  $('#masterVol').addEventListener('input',e=>{ensureAudio();master.gain.value=+e.target.value;$('#masterReadout').textContent=(+e.target.value===0?'−∞':(20*Math.log10(+e.target.value)).toFixed(1))+' dB'});
  $('#crossfader').addEventListener('input',e=>{ensureAudio();const x=+e.target.value;decks.forEach(d=>{if(d.channelGain)d.channelGain.gain.value=crossfaderGain(d,x)})});
  $('#addTrack').onclick=chooseTrack;$('#recordBtn').onclick=toggleRecord;$('#midiBtn').onclick=setupMidi;
