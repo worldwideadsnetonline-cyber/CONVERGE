@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: converge-web
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: ""
+    buildCommand: cd web && npm install
+    startCommand: cd web && npm start
+    autoDeployTrigger: commit
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: converge-db
+          property: connectionString
+
+databases:
+  - name: converge-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: 18
