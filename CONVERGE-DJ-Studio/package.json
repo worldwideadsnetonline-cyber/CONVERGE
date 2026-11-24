@@ -1,6 +1,6 @@
 {
   "name": "converge-dj-studio",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Four-deck DJ workstation with crossfader routing, beat sync, MIDI Learn, limiter, saved cue points, and library search",
   "main": "src/main.js",
   "scripts": {
