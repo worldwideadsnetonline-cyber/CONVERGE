@@ -11,7 +11,7 @@ function ensureAudio(){
  const limiter=audioCtx.createDynamicsCompressor();limiter.threshold.value=-8;limiter.knee.value=3;limiter.ratio.value=12;limiter.attack.value=.003;limiter.release.value=.12;
  masterAnalyser=audioCtx.createAnalyser();masterAnalyser.fftSize=2048;
  mediaDest=audioCtx.createMediaStreamDestination();
- master.connect(limiter);limiter.connect(masterAnalyser);masterAnalyser.connect(audioCtx.destination);masterAnalyser.connect(mediaDest;
+ master.connect(limiter);limiter.connect(masterAnalyser);masterAnalyser.connect(audioCtx.destination);masterAnalyser.connect(mediaDest);
  decks.forEach((d)=>connectDeck(d));
 }
 function crossfaderGain(d,x){x=Math.max(0,Math.min(1,x));return d.crossSide==='A'?Math.cos(x*Math.PI/2):Math.sin(x*Math.PI/2)}
