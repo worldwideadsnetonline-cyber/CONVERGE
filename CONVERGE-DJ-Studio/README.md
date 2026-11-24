@@ -1,19 +1,27 @@
 # CONVERGE DJ Studio
 
-Advanced four-deck Windows DJ workstation (Electron prototype).
+Windows 10 x64 four-deck DJ workstation prototype.
 
-## Current prototype
-The first source package contains a four-deck desktop UI, local audio-file loading, per-deck transport and tempo controls, 3-band EQ, master gain, crossfader, basic hot cues, basic loop control, recording, and starter Web MIDI input.
+## Implemented in the current source
+- Four independent audio decks with local-file loading (MP3/WAV/FLAC/OGG/M4A/AAC)
+- Play, pause, stop, cue, tempo adjustment, hot cues and basic beat loops
+- Four-channel EQ (high/mid/low), channel gain, master level and crossfader
+- Music library and one-click loading to any deck
+- Master output recording to WebM
+- Basic Web MIDI input detection and starter note mapping
+- Decoded audio peak waveforms and approximate automatic BPM estimation from onset-energy autocorrelation
+- BPM-ratio tempo matching between decks (playback-rate based; pitch changes with tempo)
+- Electron desktop shell and Windows NSIS installer configuration
 
-## Build
-On Windows 10/11 x64 with Node.js 20+:
-```powershell
-npm install
-npm run dist:win
-```
-The NSIS installer is generated in `dist/CONVERGE-DJ-Studio-Setup-0.1.0.exe`.
+## Build the Windows installer
+Requires Node.js 20+ on Windows 10/11 x64:
+1. Extract this project.
+2. Open a terminal in the project folder.
+3. Run `npm install`
+4. Run `npm run dist:win`
+5. Installer is written to `dist/CONVERGE-DJ-Studio-Setup-0.1.0.exe`.
 
-## Important status
-This is an early functional prototype, not yet a club-ready DJ system. Planned engineering includes accurate BPM/key analysis, beatgrids and quantized sync, pitch-preserving time stretch, decoded waveforms, low-latency audio device routing, independent headphone cue output, and tested MIDI mapping profiles.
+GitHub Actions workflow: `.github/workflows/converge-dj-windows.yml`. It is configured to build on updates to the DJ branch and supports manual dispatch when the workflow is available in the repository's default branch.
 
-See the downloadable source archive shared in the ChatGPT conversation for the current complete 0.1.0 source tree.
+## Known limitations
+This remains a development prototype, not a club-certified DJ engine. BPM estimation is approximate and can fail on ambient, sparse, syncopated or heavily processed material. Waveforms are decoded peak summaries, not spectral waveforms. Sync matches estimated BPM using playback rate and therefore changes pitch; it is not phase-accurate beatgrid sync. Key detection, pitch-independent time-stretch, beatgrid/phase alignment, ASIO/WASAPI device selection, independent headphone cue routing, configurable MIDI learn/mappings, and hardware validation remain outstanding. Audio codec support depends on Chromium.
