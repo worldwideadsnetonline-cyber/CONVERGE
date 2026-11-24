@@ -52,7 +52,7 @@ function init(){
   if(p==='gain'){d.gain.gain.value=+el.value;$(`#gainVal${d.index}`).textContent=(20*Math.log10(Math.max(.001,+el.value))).toFixed(1)+' dB'}
   if(p==='tempo'){d.audio.playbackRate=1+(+el.value/100);$(`#tempoVal${d.index}`).textContent=(+el.value).toFixed(1)+'%'}
   if(p==='position'&&d.audio.duration){d.audio.currentTime=d.audio.duration*(+el.value/100)}
-  if(p==='loop'){d.loop=+el.value;d.loopStart=d.audio.currentTime||0;d.loopEnd=d.loop?d.loopStart+d.loop*(60/(d.bpm||128)):0;}
+  if(p==='loop'){d.loop=+el.value;d.loopStart=d.audio.currentTime||0;d.loopEnd=d.loop?d.loopStart+d.loop*(60/((d.bpm||128)*d.audio.playbackRate)):0;}
  });
  $('#masterVol').addEventListener('input',e=>{ensureAudio();master.gain.value=+e.target.value;$('#masterReadout').textContent=(+e.target.value===0?'−∞':(20*Math.log10(+e.target.value)).toFixed(1))+' dB'});
  $('#crossfader').addEventListener('input',e=>{ensureAudio();const x=+e.target.value;decks.forEach(d=>{if(d.channelGain)d.channelGain.gain.value=crossfaderGain(d.index,x)})});
@@ -74,12 +74,12 @@ function action(a,i,cue){const d=decks[i];ensureAudio();audioCtx.resume();
  if(a==='load'){chooseTrackForDeck(i);return}
  if(a==='play'){if(d.audio.paused){d.audio.play().then(()=>$(`#state${i}`).textContent='PLAYING').catch(()=>toast('Load an audio track first'))}else{d.audio.pause();$(`#state${i}`).textContent='PAUSED'}}
  if(a==='stop'){d.audio.pause();d.audio.currentTime=0;$(`#state${i}`).textContent='STOPPED'}
- if(a==='cue'){if(!d.audio.src){toast('Load a track first');return}if(!d.audio.paused){d.audio.pause();d.audio.currentTime=d.cuePoint||0;$(`#state${i}`).textContent='CUE · READY'}else{d.audio.currentTime=d.cuePoint||0;d.audio.play().then(()=>{setTimeout(()=>{if(!d.audio.paused){d.audio.pause();d.audio.currentTime=d.cuePoint||0;$(`#state${i}`).textContent='CUE · READY'}},500)}).catch(()=>toast('Playback unavailable'))}}
+ if(a==='cue'){if(!d.audio.src){toast('Load a track first');return}if(!d.audio.paused){d.cuePoint=d.audio.currentTime;d.audio.pause();$(`#state${i}`).textContent='CUE SAVED · READY';toast('Cue point saved at '+fmt(d.cuePoint))}else{d.audio.currentTime=d.cuePoint||0;d.audio.play().then(()=>{setTimeout(()=>{if(!d.audio.paused){d.audio.pause();d.audio.currentTime=d.cuePoint||0;$(`#state${i}`).textContent='CUE · READY'}},500)}).catch(()=>toast('Playback unavailable'))}}
  if(a==='sync'){const other=decks.find(x=>x!==d&&!x.audio.paused&&x.bpm&&d.bpm);if(other){const rate=Math.max(.84,Math.min(1.16,(other.bpm*other.audio.playbackRate)/d.bpm));d.audio.playbackRate=rate;$(`[data-param="tempo"][data-i="${i}"]`).value=((rate-1)*100).toFixed(1);$ (`#tempoVal${i}`).textContent=((rate-1)*100).toFixed(1)+'%';toast(`Tempo matched: ${(d.bpm*rate).toFixed(1)} BPM`)}else toast('Load two tracks with detected BPM and start the reference deck')}
  if(a==='hotcue'){if(d.hotcues[cue]!==undefined){d.audio.currentTime=d.hotcues[cue]}else{d.hotcues[cue]=d.audio.currentTime;toast(`Hot Cue ${cue} saved`)}}
 }
 function updateDeck(d){const i=d.index,dur=d.audio.duration||0,cur=d.audio.currentTime||0;$(`#time${i}`).textContent=`${fmt(cur)} / ${fmt(dur)}`;$(`#posVal${i}`).textContent=(dur?cur/dur*100:0).toFixed(0)+'%';const pos=$(`[data-param="position"][data-i="${i}"]`);if(pos&&dur)pos.value=cur/dur*100;
- if(d.loop&&dur&&d.loopEnd>0&&cur>=d.loopEnd){d.audio.currentTime=d.loopStart;}
+ if(d.loop&&dur&&d.loopEnd>0&&cur>=d.loopEnd){d.audio.currentTime=d.loopStart;}if(d.wavePeaks)drawWave(d);
 }
 function drawWave(d){
  const canvas=$(`#wave${d.index}`),ctx=canvas.getContext('2d');canvas.width=Math.max(1,canvas.clientWidth*2);canvas.height=Math.max(1,canvas.clientHeight*2);
@@ -87,7 +87,7 @@ function drawWave(d){
  ctx.strokeStyle=colors[d.index];ctx.globalAlpha=.88;ctx.lineWidth=1;ctx.beginPath();
  if(d.wavePeaks){for(let x=0;x<w;x++){const peak=d.wavePeaks[Math.min(d.wavePeaks.length-1,Math.floor(x/w*d.wavePeaks.length))]||0;ctx.moveTo(x,mid-peak*mid*.94);ctx.lineTo(x,mid+peak*mid*.94)}}
  else {for(let x=0;x<w;x++){const y=mid+Math.sin(x*.07+d.index)*Math.sin(x*.013)*h*.32;ctx.lineTo(x,y)}}
- ctx.stroke();ctx.globalAlpha=1;
+ ctx.stroke();const dur=d.audio.duration||0;if(dur){const playX=Math.min(w-1,Math.max(0,(d.audio.currentTime/dur)*w));ctx.globalAlpha=1;ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(playX,0);ctx.lineTo(playX,h);ctx.stroke();if(d.cuePoint>0){const cueX=Math.min(w-1,(d.cuePoint/dur)*w);ctx.strokeStyle='#ff9d54';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cueX,0);ctx.lineTo(cueX,h);ctx.stroke()}}ctx.globalAlpha=1;
 }
 
 function drawLoop(){decks.forEach(d=>{const c=$(`#wave${d.index}`);if(!c.width||c.width!==c.clientWidth*2)drawWave(d)});const c=$('#masterScope'),ctx=c.getContext('2d');c.width=c.clientWidth*2;c.height=c.clientHeight*2;let data=masterAnalyser?new Uint8Array(masterAnalyser.frequencyBinCount):null;ctx.clearRect(0,0,c.width,c.height);ctx.strokeStyle='#35d5df';ctx.beginPath();for(let x=0;x<c.width;x++){let v=data?data[Math.floor(x/c.width*data.length)]/255:0.5+Math.sin(x*.03)*.15;let y=c.height*(.5-v*.7);x?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();requestAnimationFrame(drawLoop)}
