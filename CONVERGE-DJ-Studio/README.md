@@ -1,27 +1,20 @@
 # CONVERGE DJ Studio
 
-Windows 10 x64 four-deck DJ workstation prototype.
+Windows 10 x64 four-deck DJ workstation — evolving prototype (0.2.0).
 
-## Implemented in the current source
-- Four independent audio decks with local-file loading (MP3/WAV/FLAC/OGG/M4A/AAC)
-- Play, pause, stop, cue, tempo adjustment, hot cues and basic beat loops
-- Four-channel EQ (high/mid/low), channel gain, master level and crossfader
-- Music library and one-click loading to any deck
-- Master output recording to WebM
-- Basic Web MIDI input detection and starter note mapping
-- Decoded audio peak waveforms and approximate automatic BPM estimation from onset-energy autocorrelation
-- BPM-ratio tempo matching between decks (playback-rate based; pitch changes with tempo)
-- Electron desktop shell and Windows NSIS installer configuration
+## Current features
+- Four local audio decks, loading MP3/WAV/FLAC/OGG/M4A/AAC.
+- Transport: play/pause, stop, cue-point capture/preview, and four hot cues per deck.
+- Four-channel EQ (high/mid/low), gain, master level and crossfader.
+- Persistent local music library (stores file paths in the local app profile; original audio files are not copied).
+- Audio decoding for peak waveform visualization and rough tempo estimation.
+- Beat-loop lengths (1/2/4/8 beats), tempo control and rough BPM-based tempo matching.
+- WebM recording of the app's master output.
+- Basic MIDI input handling (starter mapping, not configurable MIDI Learn).
+- Electron desktop shell and NSIS Windows installer.
 
-## Build the Windows installer
-Requires Node.js 20+ on Windows 10/11 x64:
-1. Extract this project.
-2. Open a terminal in the project folder.
-3. Run `npm install`
-4. Run `npm run dist:win`
-5. Installer is written to `dist/CONVERGE-DJ-Studio-Setup-0.1.0.exe`.
+## Release build
+The GitHub Actions workflow builds a Windows x64 NSIS installer on pushes to the DJ branch and can be manually triggered. The workflow performs JavaScript syntax checks before packaging. Artifacts are downloadable from the workflow run.
 
-GitHub Actions workflow: `.github/workflows/converge-dj-windows.yml`. It is configured to build on updates to the DJ branch and supports manual dispatch when the workflow is available in the repository's default branch.
-
-## Known limitations
-This remains a development prototype, not a club-certified DJ engine. BPM estimation is approximate and can fail on ambient, sparse, syncopated or heavily processed material. Waveforms are decoded peak summaries, not spectral waveforms. Sync matches estimated BPM using playback rate and therefore changes pitch; it is not phase-accurate beatgrid sync. Key detection, pitch-independent time-stretch, beatgrid/phase alignment, ASIO/WASAPI device selection, independent headphone cue routing, configurable MIDI learn/mappings, and hardware validation remain outstanding. Audio codec support depends on Chromium.
+## Important limitations
+This is an early development build, not yet suitable for relying on professional live performances. BPM detection is approximate and may be wrong; BPM sync is not phase/beatgrid-accurate and tempo changes alter pitch. Beat loops are not quantized. The cue and hot-cue functions are basic. Waveform is a peak overview, not a detailed zoomable waveform. Headphone cue routing, ASIO/WASAPI selection, pitch-independent time-stretch, key detection, beatgrid editing, accurate phase sync, MIDI Learn, library metadata/search, audio stress tests, and Windows hardware validation are not yet implemented. Codec support depends on Electron/Chromium.
