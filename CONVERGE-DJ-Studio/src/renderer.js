@@ -13,13 +13,14 @@ function ensureAudio(){
  master.connect(masterAnalyser);masterAnalyser.connect(audioCtx.destination);masterAnalyser.connect(mediaDest);
  decks.forEach((d)=>connectDeck(d));
 }
+function crossfaderGain(index,x){x=Math.max(0,Math.min(1,x));return index<2?Math.cos(x*Math.PI/2):Math.sin(x*Math.PI/2)}
 function connectDeck(d){
  if(d.connected||!audioCtx)return;
  d.source=audioCtx.createMediaElementSource(d.audio);
  d.gain=audioCtx.createGain();d.low=audioCtx.createBiquadFilter();d.low.type='lowshelf';d.low.frequency.value=250;
  d.mid=audioCtx.createBiquadFilter();d.mid.type='peaking';d.mid.frequency.value=1000;d.mid.Q.value=.8;
  d.high=audioCtx.createBiquadFilter();d.high.type='highshelf';d.high.frequency.value=5000;
- d.channelGain=audioCtx.createGain();d.channelGain.gain.value=Math.cos(.5*Math.PI/2);d.analyser=audioCtx.createAnalyser();d.analyser.fftSize=1024;
+ d.channelGain=audioCtx.createGain();d.channelGain.gain.value=crossfaderGain(d.index,Number($('#crossfader')?.value??.5));d.analyser=audioCtx.createAnalyser();d.analyser.fftSize=1024;
  d.source.connect(d.low);d.low.connect(d.mid);d.mid.connect(d.high);d.high.connect(d.gain);d.gain.connect(d.channelGain);d.channelGain.connect(d.analyser);d.analyser.connect(master);
  d.connected=true;
 }
@@ -54,11 +55,12 @@ function init(){
   if(p==='loop'){d.loop=+el.value;d.loopStart=d.audio.currentTime||0;d.loopEnd=d.loop?d.loopStart+d.loop*(60/(d.bpm||128)):0;}
  });
  $('#masterVol').addEventListener('input',e=>{ensureAudio();master.gain.value=+e.target.value;$('#masterReadout').textContent=(+e.target.value===0?'−∞':(20*Math.log10(+e.target.value)).toFixed(1))+' dB'});
- $('#crossfader').addEventListener('input',e=>{ensureAudio();const x=+e.target.value;decks.forEach((d,i)=>{if(d.channelGain)d.channelGain.gain.value=i<2?Math.cos(x*Math.PI/2):Math.cos((1-x)*Math.PI/2)})});
+ $('#crossfader').addEventListener('input',e=>{ensureAudio();const x=+e.target.value;decks.forEach(d=>{if(d.channelGain)d.channelGain.gain.value=crossfaderGain(d.index,x)})});
  $('#addTrack').onclick=chooseTrack;$('#recordBtn').onclick=toggleRecord;$('#midiBtn').onclick=setupMidi;
  restoreLibrary();drawLoop();
 }
 async function chooseTrack(){const p=await window.djHost.chooseAudio();if(p)addTrack(p)}
+async function chooseTrackForDeck(i){const p=await window.djHost.chooseAudio();if(!p)return;let t=tracks.find(x=>x.path===p);if(!t){addTrack(p);t=tracks.find(x=>x.path===p)}if(t)loadTrack(i,t)}
 function addTrack(path){if(tracks.some(t=>t.path===path)){toast('Track already in library');return}const url=window.djHost.toFileUrl(path);const track={path,url,name:path.split(/[\\/]/).pop()};tracks.push(track);persistLibrary();renderTracks();toast('Track added · analyzing…');analyzeTrack(track)}
 function persistLibrary(){try{localStorage.setItem('convergeDjLibrary',JSON.stringify(tracks.map(t=>({path:t.path,name:t.name}))))}catch(e){toast('Library storage limit reached')}}
 function restoreLibrary(){try{const saved=JSON.parse(localStorage.getItem('convergeDjLibrary')||'[]');saved.forEach(t=>{if(t&&typeof t.path==='string'&&!tracks.some(x=>x.path===t.path)){const track={path:t.path,url:window.djHost.toFileUrl(t.path),name:t.name||t.path.split(/[\\/]/).pop()};tracks.push(track);analyzeTrack(track)}});renderTracks()}catch(e){console.warn('Library restore skipped',e)}}
@@ -69,10 +71,10 @@ function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 $('#trackList').addEventListener('click',e=>{const b=e.target.closest('button[data-load]');if(b)loadTrack(+b.dataset.i,tracks[+b.dataset.load])});
 function loadTrack(i,t){if(!t)return;const d=decks[i];d.track=t;d.audio.src=t.url;d.audio.load();d.hotcues={};d.cuePoint=0;d.bpm=t.bpm||null;d.wavePeaks=t.wavePeaks||null;$(`#title${i}`).textContent=t.name;$(`#state${i}`).textContent='LOADED · PAUSED';$('#bpm'+i).textContent=d.bpm?d.bpm.toFixed(1):'--.-';toast(`Loaded on Deck ${i+1}`);ensureAudio();drawWave(d)}
 function action(a,i,cue){const d=decks[i];ensureAudio();audioCtx.resume();
- if(a==='load'){chooseTrack().then(()=>{if(tracks.length)loadTrack(i,tracks[tracks.length-1])});return}
+ if(a==='load'){chooseTrackForDeck(i);return}
  if(a==='play'){if(d.audio.paused){d.audio.play().then(()=>$(`#state${i}`).textContent='PLAYING').catch(()=>toast('Load an audio track first'))}else{d.audio.pause();$(`#state${i}`).textContent='PAUSED'}}
  if(a==='stop'){d.audio.pause();d.audio.currentTime=0;$(`#state${i}`).textContent='STOPPED'}
- if(a==='cue'){if(!d.audio.paused){d.cuePoint=d.audio.currentTime;d.audio.pause();toast('Cue point saved at '+fmt(d.cuePoint))}else if(d.audio.src){d.audio.currentTime=d.cuePoint||0;d.audio.play().then(()=>setTimeout(()=>{d.audio.pause();$('#state'+i).textContent='CUE PREVIEW'},350)).catch(()=>toast('Load a track first'))}else toast('Load a track first')}
+ if(a==='cue'){if(!d.audio.src){toast('Load a track first');return}if(!d.audio.paused){d.audio.pause();d.audio.currentTime=d.cuePoint||0;$(`#state${i}`).textContent='CUE · READY'}else{d.audio.currentTime=d.cuePoint||0;d.audio.play().then(()=>{setTimeout(()=>{if(!d.audio.paused){d.audio.pause();d.audio.currentTime=d.cuePoint||0;$(`#state${i}`).textContent='CUE · READY'}},500)}).catch(()=>toast('Playback unavailable'))}}
  if(a==='sync'){const other=decks.find(x=>x!==d&&!x.audio.paused&&x.bpm&&d.bpm);if(other){const rate=Math.max(.84,Math.min(1.16,(other.bpm*other.audio.playbackRate)/d.bpm));d.audio.playbackRate=rate;$(`[data-param="tempo"][data-i="${i}"]`).value=((rate-1)*100).toFixed(1);$ (`#tempoVal${i}`).textContent=((rate-1)*100).toFixed(1)+'%';toast(`Tempo matched: ${(d.bpm*rate).toFixed(1)} BPM`)}else toast('Load two tracks with detected BPM and start the reference deck')}
  if(a==='hotcue'){if(d.hotcues[cue]!==undefined){d.audio.currentTime=d.hotcues[cue]}else{d.hotcues[cue]=d.audio.currentTime;toast(`Hot Cue ${cue} saved`)}}
 }
