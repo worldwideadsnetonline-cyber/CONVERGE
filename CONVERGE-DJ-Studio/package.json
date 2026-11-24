@@ -1,7 +1,7 @@
 {
   "name": "converge-dj-studio",
-  "version": "0.3.1",
-  "description": "Four-deck DJ workstation with library management, audio analysis, waveform, cues, loops, mixer and MIDI",
+  "version": "0.3.2",
+  "description": "Four-deck DJ workstation with individual crossfader routing and beat-aligned sync",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
