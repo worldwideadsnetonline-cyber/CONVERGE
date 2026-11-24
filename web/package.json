@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "description": "Web-first CONVERGE human-AI workspace",
-  "scripts": { "start": "node server/index.js", "check": "node --check server/index.js" },
-  "dependencies": { "express": "^4.21.2" }
+  "scripts": {
+    "start": "node server/index.js",
+    "check": "node --check server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.16.3"
+  }
 }
