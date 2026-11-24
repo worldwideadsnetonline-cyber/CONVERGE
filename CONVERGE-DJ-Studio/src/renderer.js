@@ -6,8 +6,8 @@ const decks=[], tracks=[];
 const fmt=t=>{if(!Number.isFinite(t))return '00:00';return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`};
 function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2300)}
 function ensureAudio(){
- if(audioCtx)return;
- audioCtx=new AudioContext();master=audioCtx.createGain();master.gain.value=.82;
+ if(master)return;
+ if(!audioCtx)audioCtx=new AudioContext();master=audioCtx.createGain();master.gain.value=.82;
  masterAnalyser=audioCtx.createAnalyser();masterAnalyser.fftSize=2048;
  mediaDest=audioCtx.createMediaStreamDestination();
  master.connect(masterAnalyser);masterAnalyser.connect(audioCtx.destination);masterAnalyser.connect(mediaDest);
@@ -19,7 +19,7 @@ function connectDeck(d){
  d.gain=audioCtx.createGain();d.low=audioCtx.createBiquadFilter();d.low.type='lowshelf';d.low.frequency.value=250;
  d.mid=audioCtx.createBiquadFilter();d.mid.type='peaking';d.mid.frequency.value=1000;d.mid.Q.value=.8;
  d.high=audioCtx.createBiquadFilter();d.high.type='highshelf';d.high.frequency.value=5000;
- d.channelGain=audioCtx.createGain();d.analyser=audioCtx.createAnalyser();d.analyser.fftSize=1024;
+ d.channelGain=audioCtx.createGain();d.channelGain.gain.value=Math.cos(.5*Math.PI/2);d.analyser=audioCtx.createAnalyser();d.analyser.fftSize=1024;
  d.source.connect(d.low);d.low.connect(d.mid);d.mid.connect(d.high);d.high.connect(d.gain);d.gain.connect(d.channelGain);d.channelGain.connect(d.analyser);d.analyser.connect(master);
  d.connected=true;
 }
