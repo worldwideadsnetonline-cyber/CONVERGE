@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CONVERGE DJ Studio</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">C</span><div><b>CONVERGE</b><small>DJ STUDIO <i>ADVANCED</i></small></div></div>
+  <div class="session"><span class="live-dot"></span> AUDIO ENGINE READY <span class="sep">/</span> 4-DECK PERFORMANCE</div>
+  <div class="top-actions"><button id="midiBtn" class="subtle">⌘ MIDI SETUP</button><button id="recordBtn" class="record">● RECORD</button></div>
+</header>
+<main>
+  <section class="wave-overview">
+    <div><label>MASTER OUTPUT</label><strong id="masterReadout">−∞ dB</strong></div>
+    <canvas id="masterScope"></canvas>
+    <div class="master-control"><label>MASTER</label><input id="masterVol" type="range" min="0" max="1" step=".01" value=".82"></div>
+  </section>
+  <section class="decks" id="decks"></section>
+  <section class="mixer-panel">
+    <div class="section-head"><div><span class="eyebrow">CENTRAL CONSOLE</span><h2>PERFORMANCE MIXER</h2></div><span class="status">4 CHANNELS ACTIVE</span></div>
+    <div class="mixer" id="mixer"></div>
+    <div class="crossfader"><label>A</label><input id="crossfader" type="range" min="0" max="1" step=".01" value=".5"><label>B</label><span>CROSSFADER</span></div>
+  </section>
+  <section class="library">
+    <div class="section-head"><div><span class="eyebrow">COLLECTION</span><h2>MUSIC LIBRARY</h2></div><button id="addTrack" class="primary">＋ ADD TRACK</button></div>
+    <div class="library-head"><span>TITLE / FILE</span><span>FORMAT</span><span>LOAD TO</span></div>
+    <div id="trackList" class="track-list"><div class="empty">Your music collection will appear here. Add audio files to begin.</div></div>
+  </section>
+  <footer><span>CONVERGE DJ STUDIO <b>0.1.0</b></span><span>LOCAL PLAYBACK · MIDI READY · WINDOWS DESKTOP</span></footer>
+</main>
+<div id="toast" class="toast"></div>
+<script src="renderer.js"></script>
+</body></html>
