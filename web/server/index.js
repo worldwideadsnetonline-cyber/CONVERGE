@@ -5,7 +5,7 @@ const crypto=require('crypto');
 const app=express();
 const PORT=Number(process.env.PORT||3000);
 const API_KEY=process.env.OPENAI_API_KEY||'';
-const ACCESS_PASSWORD=process.env.CONVERGE_ACCESS_PASSWORD||'',SESSION_SECRET=process.CONVERGE_SESSION_SECRET||'',SESSION_TTL=86400000;
+const ACCESS_PASSWORD=process.env.CONVERGE_ACCESS_PASSWORD||'',SESSION_SECRET=process.env.CONVERGE_SESSION_SECRET||'',SESSION_TTL=86400000;
 function signSession(payload){return crypto.createHmac('sha256',SESSION_SECRET).update(payload).digest('base64url')}
 function cookieToken(req){const entry=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('converge_session='));return entry?entry.substring('converge_session='.length):''}
 function sessionValid(req){if(!SESSION_SECRET)return false;const t=cookieToken(req).split('.');if(t.length!==2)return false;const [payload,sig]=t,expected=signSession(payload);if(sig.length!==expected.length||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(expected)))return false;const [ts,nonce]=payload.split(':');return !!nonce&&Number(ts)>Date.now()-SESSION_TTL&&Number(ts)<=Date.now()+30000}
