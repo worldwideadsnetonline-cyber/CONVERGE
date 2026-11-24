@@ -11,3 +11,5 @@ input[type=range]{accent-color:var(--cyan);width:100%;cursor:pointer}
 @media(max-width:1150px){main{padding:12px}.deck-controls{grid-template-columns:1fr 1fr}.mixer{grid-template-columns:1fr 1fr}.session{display:none}}
 .remove-track{padding:4px 8px;color:#ff8b8b;border-color:#49323b;background:#20171d;margin-left:3px;font-size:12px;line-height:1}
 .remove-track:hover{border-color:#ad5d68;background:#39232a}
+
+.deck-controls select{width:100%;background:#101b26;color:var(--text);border:1px solid var(--line);border-radius:5px;padding:5px;font-size:10px}
